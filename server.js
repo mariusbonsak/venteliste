@@ -1,39 +1,42 @@
 const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const http = require("http").createServer(app);
+const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
-let venteliste = [];
+let kunder = [];
 
+// Når ny klient kobler
 io.on("connection", (socket) => {
-socket.on("beOmOppdatering", () => {
-  socket.emit("oppdater", venteliste);
-});
-  socket.emit("oppdater", venteliste);
+  console.log("Ny bruker tilkoblet");
 
+  // Send eksisterende liste
+  socket.emit("oppdater", kunder);
+
+  // Ny kunde
   socket.on("nyKunde", (kunde) => {
-    venteliste.push(kunde);
-    io.emit("oppdater", venteliste);
+    kunder.push(kunde);
+    io.emit("oppdater", kunder);
   });
 
+  // Oppdater status
   socket.on("oppdaterStatus", ({ id, status }) => {
-    venteliste = venteliste.map(k =>
-      k.id === id ? { ...k, status } : k
-    );
-    io.emit("oppdater", venteliste);
+    kunder = kunder.map(k => k.id === id ? {...k, status} : k);
+    io.emit("oppdater", kunder);
   });
 
+  // Fjern kunde
   socket.on("fjernKunde", (id) => {
-    venteliste = venteliste.filter(k => k.id !== id);
-    io.emit("oppdater", venteliste);
+    kunder = kunder.filter(k => k.id !== id);
+    io.emit("oppdater", kunder);
+  });
+
+  // Håndter manuell oppdatering
+  socket.on("beOmOppdatering", () => {
+    socket.emit("oppdater", kunder);
   });
 });
 
-server.listen(3000, () => {
-  console.log("Venteliste kjører på http://localhost:3000");
-});
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => console.log(`Server kjører på port ${PORT}`));
