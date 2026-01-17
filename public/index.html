@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Verksted – Venteliste</title>
+
+<style>
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f4f6f8;
+  padding: 30px;
+  color: #333;
+}
+
+.logo-container {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.logo-container img {
+  max-width: 200px;
+  height: auto;
+}
+
+h2 {
+  margin-bottom: 15px;
+  font-size: 26px;
+  text-align: center;
+}
+
+input, button, select {
+  padding: 10px;
+  font-size: 15px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+input {
+  margin-right: 6px;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 25px;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+th, td {
+  padding: 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+th {
+  background: #2c3e50;
+  color: white;
+  font-size: 15px;
+}
+
+td {
+  border-bottom: 1px solid #eee;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Ventetidsfarger */
+.gronn { background-color: #e6f4ea; }
+.gul   { background-color: #fff8e1; }
+.rod   { background-color: #fdecea; }
+</style>
+</head>
+
+<body>
+
+<!-- Logo -->
+<div class="logo-container">
+  <img src="logo.png" alt="Verksted Logo">
+</div>
+
+<h2>Ventende kunder</h2>
+
+<input id="navn" placeholder="Kundenavn">
+<input id="klarTid" type="time">
+<button onclick="leggTil()">Legg til</button>
+
+<table>
+<thead>
+<tr>
+<th>Navn</th>
+<th>Ventetid (min)</th>
+<th>Forventet klar</th>
+<th>Status</th>
+<th>Handling</th>
+</tr>
+</thead>
+<tbody id="liste"></tbody>
+</table>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+// Legg til kunde
+function leggTil() {
+  const navnEl = document.getElementById("navn");
+  const klarTidEl = document.getElementById("klarTid");
+
+  const navn = navnEl.value.trim();
+  const klarTid = klarTidEl.value;
+
+  if (!navn) {
+    alert("Skriv inn kundenavn");
+    return;
+  }
+
+  socket.emit("nyKunde", {
+    id: Date.now().toString(),
+    navn,
+    klarTid,
+    startTid: Date.now(),
+    status: "Venter"
+  });
+
+  navnEl.value = "";
+}
+
+// Endre status
+function endreStatus(id, status) {
+  socket.emit("oppdaterStatus", { id, status });
+}
+
+// Fjern kunde
+function fjern(id) {
+  socket.emit("fjernKunde", id);
+}
+
+// Oppdater liste
+socket.on("oppdater", (data) => {
+  const tbody = document.getElementById("liste");
+  tbody.innerHTML = "";
+
+  data.forEach(k => {
+    const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
+
+    const row = document.createElement("tr");
+    let farge = "gronn";
+
+    if (k.klarTid) {
+      const [timer, minutter] = k.klarTid.split(":").map(Number);
+      const forventetTid = new Date();
+      forventetTid.setHours(timer, minutter, 0, 0);
+
+      const diffMinutter = Math.floor(
+        (Date.now() - forventetTid.getTime()) / 60000
+      );
+
+      if (diffMinutter >= 60) farge = "rod";
+      else if (diffMinutter >= 30) farge = "gul";
+    }
+
+    row.className = farge;
+
+    row.innerHTML = `
+      <td>${k.navn}</td>
+      <td>${ventetid}</td>
+      <td>${k.klarTid || ""}</td>
+      <td>
+        <select onchange="endreStatus('${k.id}', this.value)">
+          <option ${k.status === "Venter" ? "selected" : ""}>Venter</option>
+          <option ${k.status === "Under arbeid" ? "selected" : ""}>Under arbeid</option>
+          <option ${k.status === "Klar" ? "selected" : ""}>Klar</option>
+        </select>
+      </td>
+      <td>
+        <button onclick="fjern('${k.id}')">Fjern</button>
+      </td>
+    `;
+
+    tbody.appendChild(row);
+  });
+});
+
+// Automatisk oppdatering hvert minutt
+setInterval(() => {
+  socket.emit("beOmOppdatering");
+}, 60000);
+</script>
+
+</body>
+</html>
+
