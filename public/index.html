@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Verksted – Venteliste</title>
+<title>Venteliste – Verksted</title>
 
 <style>
 body {
@@ -33,10 +33,7 @@ input, button, select {
   font-size: 15px;
   border-radius: 6px;
   border: 1px solid #ccc;
-}
-
-input {
-  margin-right: 6px;
+  margin-right: 5px;
 }
 
 button {
@@ -86,7 +83,6 @@ tr:last-child td {
 .rod   { background-color: #fdecea; }
 </style>
 </head>
-
 <body>
 
 <!-- Logo -->
@@ -97,6 +93,7 @@ tr:last-child td {
 <h2>Ventende kunder</h2>
 
 <input id="navn" placeholder="Kundenavn">
+<input id="regnr" placeholder="Registreringsnummer">
 <input id="klarTid" type="time">
 <button onclick="leggTil()">Legg til</button>
 
@@ -104,6 +101,7 @@ tr:last-child td {
 <thead>
 <tr>
 <th>Navn</th>
+<th>Reg.nr</th>
 <th>Ventetid (min)</th>
 <th>Forventet klar</th>
 <th>Status</th>
@@ -120,25 +118,30 @@ const socket = io();
 // Legg til kunde
 function leggTil() {
   const navnEl = document.getElementById("navn");
+  const regEl = document.getElementById("regnr");
   const klarTidEl = document.getElementById("klarTid");
 
   const navn = navnEl.value.trim();
+  const regnr = regEl.value.trim();
   const klarTid = klarTidEl.value;
 
-  if (!navn) {
-    alert("Skriv inn kundenavn");
+  if (!navn || !regnr) {
+    alert("Skriv inn både navn og registreringsnummer");
     return;
   }
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
     navn,
+    regnr,
     klarTid,
     startTid: Date.now(),
     status: "Venter"
   });
 
   navnEl.value = "";
+  regEl.value = "";
+  klarTidEl.value = "";
 }
 
 // Endre status
@@ -179,6 +182,7 @@ socket.on("oppdater", (data) => {
 
     row.innerHTML = `
       <td>${k.navn}</td>
+      <td>${k.regnr || ""}</td>
       <td>${ventetid}</td>
       <td>${k.klarTid || ""}</td>
       <td>
@@ -205,4 +209,6 @@ setInterval(() => {
 
 </body>
 </html>
+
+
 
