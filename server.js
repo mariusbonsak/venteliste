@@ -7,9 +7,15 @@ const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
 // ================================
-// FIL-LAGRING
+// PERSISTENT DATA (RENDER DISK)
 // ================================
-const DATAFIL = path.join(__dirname, "kunder.json");
+const DATA_DIR = "/data";
+const DATAFIL = path.join(DATA_DIR, "kunder.json");
+
+// Sørg for at mappen finnes
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 // Last kunder ved oppstart
 let kunder = [];
@@ -17,7 +23,7 @@ if (fs.existsSync(DATAFIL)) {
   try {
     kunder = JSON.parse(fs.readFileSync(DATAFIL, "utf8"));
   } catch (err) {
-    console.error("Kunne ikke lese kunder.json:", err);
+    console.error("Feil ved lesing av kunder.json:", err);
     kunder = [];
   }
 }
