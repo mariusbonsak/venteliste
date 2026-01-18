@@ -11,14 +11,12 @@ body {
   color: #212529;
   margin: 0;
 }
-
 h2 {
   text-align: center;
   font-weight: 600;
   color: #1c2833;
   margin-bottom: 20px;
 }
-
 .input-container {
   display: flex;
   justify-content: center;
@@ -26,7 +24,6 @@ h2 {
   gap: 10px;
   margin-bottom: 20px;
 }
-
 input, button, select {
   padding: 10px 12px;
   font-size: 14px;
@@ -34,9 +31,7 @@ input, button, select {
   border: 1px solid #ced4da;
   outline: none;
 }
-
 input { width: 150px; }
-
 button {
   background-color: #007bff;
   color: #fff;
@@ -44,11 +39,8 @@ button {
   cursor: pointer;
   transition: 0.2s;
 }
-
 button:hover { background-color: #0056b3; }
-
 select { border-radius: 6px; }
-
 table {
   width: 100%;
   border-collapse: collapse;
@@ -57,30 +49,17 @@ table {
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
-
 th, td {
   padding: 12px;
   text-align: center;
   font-size: 14px;
 }
-
-th {
-  background-color: #e9ecef;
-  color: #495057;
-  font-weight: 600;
-}
-
-tr:nth-child(even) td {
-  background-color: #f8f9fa;
-}
-
+th { background-color: #e9ecef; color: #495057; font-weight: 600; }
+tr:nth-child(even) td { background-color: #f8f9fa; }
 .status-gronn { background-color: #e6f4ea; }
 .status-gul { background-color: #fff8e1; }
 .status-rod { background-color: #fdecea; }
-
 button:active { transform: scale(0.98); }
-
-/* Storskjerm-knapp styling */
 .storskjerm-knapp {
   background-color: #28a745;
   margin-bottom: 15px;
@@ -88,12 +67,10 @@ button:active { transform: scale(0.98); }
 .storskjerm-knapp:hover { background-color: #218838; }
 </style>
 </head>
-
 <body>
 
 <h2>Ventende kunder – Admin</h2>
 
-<!-- Knapp for storskjerm -->
 <div style="text-align:center; margin-bottom:20px;">
   <button class="storskjerm-knapp" onclick="åpneStorskjerm()">Åpne storskjerm</button>
 </div>
@@ -122,6 +99,7 @@ button:active { transform: scale(0.98); }
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
+let kunderData = [];
 
 // --- Legg til kunde ---
 function leggTil() {
@@ -159,21 +137,19 @@ function åpneStorskjerm() {
   window.open('storskjerm.html', '_blank');
 }
 
-// --- Oppdater liste sanntid ---
-socket.on("oppdater", data => {
+// --- Oppdater tabell ---
+function oppdaterTabell() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
 
-  data.forEach(k => {
+  kunderData.forEach(k => {
     const ventetid = Math.floor((Date.now() - k.startTid)/60000);
 
-    // --- Fargelogikk ---
     let klasse = "status-gronn";
     if (k.klarTid) {
       const [h,m] = k.klarTid.split(":").map(Number);
       const forventet = new Date(); forventet.setHours(h,m,0,0);
       const diff = (Date.now() - forventet.getTime())/60000;
-
       if(diff > 60) klasse="status-rod";
       else if(diff > 0) klasse="status-gul";
     }
@@ -196,9 +172,19 @@ socket.on("oppdater", data => {
       <td><button onclick="fjern('${k.id}')">Fjern</button></td>`;
     tbody.appendChild(row);
   });
-});
-</script>
+}
 
+// --- Socket.io sanntid ---
+socket.on("oppdater", data => {
+  kunderData = data;
+  oppdaterTabell();
+});
+
+// --- Oppdater hvert 30 sek for sanntid ventetid ---
+setInterval(oppdaterTabell, 30000);
+
+</script>
 </body>
 </html>
+
 
