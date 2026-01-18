@@ -2,7 +2,7 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Venteliste – Verksted</title>
+<title>Venteliste – Admin</title>
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
@@ -16,7 +16,7 @@ h2 {
   text-align: center;
   font-weight: 600;
   color: #1c2833;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
 
 .input-container {
@@ -64,20 +64,39 @@ th, td {
   font-size: 14px;
 }
 
-th { background-color: #e9ecef; color: #495057; font-weight: 600; }
+th {
+  background-color: #e9ecef;
+  color: #495057;
+  font-weight: 600;
+}
 
-tr:nth-child(even) td { background-color: #f8f9fa; }
+tr:nth-child(even) td {
+  background-color: #f8f9fa;
+}
 
-/* --- Ventetidsfarger --- */
-.status-gronn { background-color: #e6f4ea; }  /* under forventet tid */
-.status-gul { background-color: #fff8e1; }    /* over forventet tid */
-.status-rod { background-color: #fdecea; }    /* +60 min over forventet */
+.status-gronn { background-color: #e6f4ea; }
+.status-gul { background-color: #fff8e1; }
+.status-rod { background-color: #fdecea; }
+
+button:active { transform: scale(0.98); }
+
+/* Storskjerm-knapp styling */
+.storskjerm-knapp {
+  background-color: #28a745;
+  margin-bottom: 15px;
+}
+.storskjerm-knapp:hover { background-color: #218838; }
 </style>
 </head>
 
 <body>
 
-<h2>Ventende kunder</h2>
+<h2>Ventende kunder – Admin</h2>
+
+<!-- Knapp for storskjerm -->
+<div style="text-align:center; margin-bottom:20px;">
+  <button class="storskjerm-knapp" onclick="åpneStorskjerm()">Åpne storskjerm</button>
+</div>
 
 <div class="input-container">
   <input id="navn" placeholder="Kundenavn">
@@ -104,11 +123,11 @@ tr:nth-child(even) td { background-color: #f8f9fa; }
 <script>
 const socket = io();
 
+// --- Legg til kunde ---
 function leggTil() {
   const navn = document.getElementById("navn").value.trim();
   const regnr = document.getElementById("regnr").value.trim();
   const klarTid = document.getElementById("klarTid").value;
-
   if (!navn) { alert("Skriv inn navn"); return; }
 
   socket.emit("nyKunde", {
@@ -125,15 +144,23 @@ function leggTil() {
   document.getElementById("klarTid").value = "";
 }
 
+// --- Endre status ---
 function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
+// --- Fjern kunde ---
 function fjern(id) {
   socket.emit("fjernKunde", id);
 }
 
-socket.on("oppdater", (data) => {
+// --- Åpne storskjerm ---
+function åpneStorskjerm() {
+  window.open('storskjerm.html', '_blank');
+}
+
+// --- Oppdater liste sanntid ---
+socket.on("oppdater", data => {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
 
@@ -141,17 +168,14 @@ socket.on("oppdater", (data) => {
     const ventetid = Math.floor((Date.now() - k.startTid)/60000);
 
     // --- Fargelogikk ---
-    let klasse = "status-gronn"; // standard grønn
-
+    let klasse = "status-gronn";
     if (k.klarTid) {
-      const [h, m] = k.klarTid.split(":").map(Number);
-      const forventet = new Date();
-      forventet.setHours(h, m, 0, 0);
+      const [h,m] = k.klarTid.split(":").map(Number);
+      const forventet = new Date(); forventet.setHours(h,m,0,0);
+      const diff = (Date.now() - forventet.getTime())/60000;
 
-      const diff = (Date.now() - forventet.getTime())/60000; // i minutter
-
-      if (diff > 60) klasse = "status-rod";   // mer enn 1 time over
-      else if (diff > 0) klasse = "status-gul"; // over forventet tid
+      if(diff > 60) klasse="status-rod";
+      else if(diff > 0) klasse="status-gul";
     }
 
     const row = document.createElement("tr");
@@ -159,24 +183,22 @@ socket.on("oppdater", (data) => {
 
     row.innerHTML = `
       <td>${k.navn}</td>
-      <td>${k.regnr || ""}</td>
+      <td>${k.regnr||""}</td>
       <td>${ventetid}</td>
-      <td>${k.klarTid || ""}</td>
+      <td>${k.klarTid||""}</td>
       <td>
-        <select onchange="endreStatus('${k.id}', this.value)">
-          <option ${k.status === "Venter" ? "selected":""}>Venter</option>
-          <option ${k.status === "Under arbeid" ? "selected":""}>Under arbeid</option>
-          <option ${k.status === "Klar" ? "selected":""}>Klar</option>
+        <select onchange="endreStatus('${k.id}',this.value)">
+          <option ${k.status==="Venter"?"selected":""}>Venter</option>
+          <option ${k.status==="Under arbeid"?"selected":""}>Under arbeid</option>
+          <option ${k.status==="Klar"?"selected":""}>Klar</option>
         </select>
       </td>
-      <td>
-        <button onclick="fjern('${k.id}')">Fjern</button>
-      </td>
-    `;
-
+      <td><button onclick="fjern('${k.id}')">Fjern</button></td>`;
     tbody.appendChild(row);
   });
 });
 </script>
+
 </body>
 </html>
+
