@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Venteliste – Storskjerm</title>
+<style>
+body { font-family:"Segoe UI", Arial; background:#f8f9fa; margin:0; padding:20px; color:#212529; }
+h2 { text-align:center; font-weight:700; color:#1c2833; font-size:48px; margin-bottom:30px; }
+.input-container { display:none; }
+table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 6px 15px rgba(0,0,0,0.05); font-size:36px; }
+th, td { padding:20px; text-align:center; }
+th { background:#e9ecef; color:#495057; font-weight:700; font-size:32px; }
+tr:nth-child(even) td { background:#f8f9fa; }
+.status-gronn { background-color: #e6f4ea; }
+.status-gul { background-color: #fff8e1; }
+.status-rod { background-color: #fdecea; }
+button, select { display:none; }
+@media(max-width:1200px){ table{font-size:24px;} th,td{padding:12px;} }
+</style>
+</head>
+<body>
+<h2>Ventende kunder</h2>
+<div class="input-container"></div>
+<table>
+  <thead>
+    <tr>
+      <th>Navn</th>
+      <th>Reg.nr</th>
+      <th>Ventetid (min)</th>
+      <th>Forventet klar</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="liste"></tbody>
+</table>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+socket.on("oppdater", data => {
+  const tbody = document.getElementById("liste");
+  tbody.innerHTML="";
+  data.forEach(k => {
+    const ventetid = Math.floor((Date.now() - k.startTid)/60000);
+    let klasse="status-gronn";
+    if(k.klarTid){
+      const [h,m]=k.klarTid.split(":").map(Number);
+      const forventet=new Date(); forventet.setHours(h,m,0,0);
+      const diff=(Date.now()-forventet.getTime())/60000;
+      if(diff>60) klasse="status-rod";
+      else if(diff>0) klasse="status-gul";
+    }
+    const row=document.createElement("tr");
+    row.className=klasse;
+    row.innerHTML=`
+      <td>${k.navn}</td>
+      <td>${k.regnr||""}</td>
+      <td>${ventetid}</td>
+      <td>${k.klarTid||""}</td>
+      <td>${k.status}</td>`;
+    tbody.appendChild(row);
+  });
+});
+</script>
+</body>
+</html>
