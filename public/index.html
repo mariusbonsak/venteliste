@@ -2,131 +2,103 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Venteliste – Verksted</title>
+<title>Venteliste</title>
 
 <style>
 body {
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: Arial, sans-serif;
+  padding: 20px;
   background: #f4f6f8;
-  padding: 30px;
-  color: #333;
-}
-
-.logo-container {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.logo-container img {
-  max-width: 200px;
-  height: auto;
 }
 
 h2 {
-  margin-bottom: 15px;
-  font-size: 26px;
   text-align: center;
+  color: #2e7d32;
 }
 
 input, button, select {
-  padding: 10px;
-  font-size: 15px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-right: 5px;
+  padding: 8px;
+  margin: 5px;
 }
 
 button {
-  background-color: #007bff;
+  background: #2e7d32;
   color: white;
   border: none;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background: #256528;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 25px;
+  margin-top: 20px;
   background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 th, td {
-  padding: 12px;
+  border: 1px solid #ddd;
+  padding: 10px;
   text-align: center;
-  vertical-align: middle;
 }
 
 th {
-  background: #2c3e50;
-  color: white;
-  font-size: 15px;
+  background: #e8f5e9;
 }
 
-td {
-  border-bottom: 1px solid #eee;
+.status-gronn {
+  background: #c8e6c9;
 }
 
-tr:last-child td {
-  border-bottom: none;
+.status-gul {
+  background: #fff9c4;
 }
 
-/* Ventetidsfarger */
-.gronn { background-color: #e6f4ea; }
-.gul   { background-color: #fff8e1; }
-.rod   { background-color: #fdecea; }
+.status-rod {
+  background: #ffcdd2;
+}
 </style>
 </head>
-<body>
 
-<!-- Logo -->
-<div class="logo-container">
-  <img src="logo.png" alt="Verksted Logo">
-</div>
+<body>
 
 <h2>Ventende kunder</h2>
 
-<input id="navn" placeholder="Kundenavn">
-<input id="regnr" placeholder="Registreringsnummer">
-<input id="klarTid" type="time">
-<button onclick="leggTil()">Legg til</button>
+<div style="text-align:center;">
+  <input id="navn" placeholder="Kundenavn">
+  <input id="regnr" placeholder="Reg.nr">
+  <input id="klarTid" type="time">
+  <button onclick="leggTil()">Legg til</button>
+</div>
 
 <table>
-<thead>
-<tr>
-<th>Navn</th>
-<th>Reg.nr</th>
-<th>Ventetid (min)</th>
-<th>Forventet klar</th>
-<th>Status</th>
-<th>Handling</th>
-</tr>
-</thead>
-<tbody id="liste"></tbody>
+  <thead>
+    <tr>
+      <th>Navn</th>
+      <th>Reg.nr</th>
+      <th>Ventetid (min)</th>
+      <th>Forventet klar</th>
+      <th>Status</th>
+      <th>Handling</th>
+    </tr>
+  </thead>
+  <tbody id="liste"></tbody>
 </table>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
 
-// Legg til kunde
 function leggTil() {
-  const navnEl = document.getElementById("navn");
-  const regEl = document.getElementById("regnr");
-  const klarTidEl = document.getElementById("klarTid");
+  const navn = document.getElementById("navn").value;
+  const regnr = document.getElementById("regnr").value;
+  const klarTid = document.getElementById("klarTid").value;
 
-  const navn = navnEl.value.trim();
-  const regnr = regEl.value.trim();
-  const klarTid = klarTidEl.value;
-
-  if (!navn || !regnr) {
-    alert("Skriv inn både navn og registreringsnummer");
+  if (!navn) {
+    alert("Skriv inn navn");
     return;
   }
 
@@ -139,22 +111,18 @@ function leggTil() {
     status: "Venter"
   });
 
-  navnEl.value = "";
-  regEl.value = "";
-  klarTidEl.value = "";
+  document.getElementById("navn").value = "";
+  document.getElementById("regnr").value = "";
 }
 
-// Endre status
 function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
-// Fjern kunde
 function fjern(id) {
   socket.emit("fjernKunde", id);
 }
 
-// Oppdater liste
 socket.on("oppdater", (data) => {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -162,24 +130,19 @@ socket.on("oppdater", (data) => {
   data.forEach(k => {
     const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
 
-    const row = document.createElement("tr");
-    let farge = "gronn";
-
+    let klasse = "status-gronn";
     if (k.klarTid) {
-      const [timer, minutter] = k.klarTid.split(":").map(Number);
-      const forventetTid = new Date();
-      forventetTid.setHours(timer, minutter, 0, 0);
+      const [h, m] = k.klarTid.split(":");
+      const forventet = new Date();
+      forventet.setHours(h, m, 0, 0);
 
-      const diffMinutter = Math.floor(
-        (Date.now() - forventetTid.getTime()) / 60000
-      );
-
-      if (diffMinutter >= 60) farge = "rod";
-      else if (diffMinutter >= 30) farge = "gul";
+      const diff = (Date.now() - forventet.getTime()) / 60000;
+      if (diff > 60) klasse = "status-rod";
+      else if (diff > 30) klasse = "status-gul";
     }
 
-    row.className = farge;
-
+    const row = document.createElement("tr");
+    row.className = klasse;
     row.innerHTML = `
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
@@ -196,15 +159,9 @@ socket.on("oppdater", (data) => {
         <button onclick="fjern('${k.id}')">Fjern</button>
       </td>
     `;
-
     tbody.appendChild(row);
   });
 });
-
-// Automatisk oppdatering hvert minutt
-setInterval(() => {
-  socket.emit("beOmOppdatering");
-}, 60000);
 </script>
 
 </body>
