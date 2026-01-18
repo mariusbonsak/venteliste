@@ -2,64 +2,76 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Venteliste</title>
-
+<title>Venteliste – Verksted</title>
 <style>
 body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background: #f4f6f8;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f8f9fa;
+  padding: 30px;
+  color: #212529;
+  margin: 0;
 }
 
 h2 {
   text-align: center;
-  color: #2e7d32;
+  font-weight: 600;
+  color: #1c2833;
+  margin-bottom: 25px;
+}
+
+.input-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 input, button, select {
-  padding: 8px;
-  margin: 5px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  outline: none;
 }
+
+input { width: 150px; }
 
 button {
-  background: #2e7d32;
-  color: white;
+  background-color: #007bff;
+  color: #fff;
   border: none;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-button:hover {
-  background: #256528;
-}
+button:hover { background-color: #0056b3; }
+
+select { border-radius: 6px; }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
-  background: white;
+  background: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
 }
 
 th, td {
-  border: 1px solid #ddd;
-  padding: 10px;
+  padding: 12px;
   text-align: center;
+  font-size: 14px;
 }
 
-th {
-  background: #e8f5e9;
-}
+th { background-color: #e9ecef; color: #495057; font-weight: 600; }
 
-.status-gronn {
-  background: #c8e6c9;
-}
+tr:nth-child(even) td { background-color: #f8f9fa; }
 
-.status-gul {
-  background: #fff9c4;
-}
-
-.status-rod {
-  background: #ffcdd2;
-}
+/* --- Ventetidsfarger --- */
+.status-gronn { background-color: #e6f4ea; }  /* under forventet tid */
+.status-gul { background-color: #fff8e1; }    /* over forventet tid */
+.status-rod { background-color: #fdecea; }    /* +60 min over forventet */
 </style>
 </head>
 
@@ -67,7 +79,7 @@ th {
 
 <h2>Ventende kunder</h2>
 
-<div style="text-align:center;">
+<div class="input-container">
   <input id="navn" placeholder="Kundenavn">
   <input id="regnr" placeholder="Reg.nr">
   <input id="klarTid" type="time">
@@ -93,14 +105,11 @@ th {
 const socket = io();
 
 function leggTil() {
-  const navn = document.getElementById("navn").value;
-  const regnr = document.getElementById("regnr").value;
+  const navn = document.getElementById("navn").value.trim();
+  const regnr = document.getElementById("regnr").value.trim();
   const klarTid = document.getElementById("klarTid").value;
 
-  if (!navn) {
-    alert("Skriv inn navn");
-    return;
-  }
+  if (!navn) { alert("Skriv inn navn"); return; }
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
@@ -113,6 +122,7 @@ function leggTil() {
 
   document.getElementById("navn").value = "";
   document.getElementById("regnr").value = "";
+  document.getElementById("klarTid").value = "";
 }
 
 function endreStatus(id, status) {
@@ -128,21 +138,25 @@ socket.on("oppdater", (data) => {
   tbody.innerHTML = "";
 
   data.forEach(k => {
-    const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
+    const ventetid = Math.floor((Date.now() - k.startTid)/60000);
 
-    let klasse = "status-gronn";
+    // --- Fargelogikk ---
+    let klasse = "status-gronn"; // standard grønn
+
     if (k.klarTid) {
-      const [h, m] = k.klarTid.split(":");
+      const [h, m] = k.klarTid.split(":").map(Number);
       const forventet = new Date();
       forventet.setHours(h, m, 0, 0);
 
-      const diff = (Date.now() - forventet.getTime()) / 60000;
-      if (diff > 60) klasse = "status-rod";
-      else if (diff > 30) klasse = "status-gul";
+      const diff = (Date.now() - forventet.getTime())/60000; // i minutter
+
+      if (diff > 60) klasse = "status-rod";   // mer enn 1 time over
+      else if (diff > 0) klasse = "status-gul"; // over forventet tid
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
+
     row.innerHTML = `
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
@@ -150,22 +164,19 @@ socket.on("oppdater", (data) => {
       <td>${k.klarTid || ""}</td>
       <td>
         <select onchange="endreStatus('${k.id}', this.value)">
-          <option ${k.status === "Venter" ? "selected" : ""}>Venter</option>
-          <option ${k.status === "Under arbeid" ? "selected" : ""}>Under arbeid</option>
-          <option ${k.status === "Klar" ? "selected" : ""}>Klar</option>
+          <option ${k.status === "Venter" ? "selected":""}>Venter</option>
+          <option ${k.status === "Under arbeid" ? "selected":""}>Under arbeid</option>
+          <option ${k.status === "Klar" ? "selected":""}>Klar</option>
         </select>
       </td>
       <td>
         <button onclick="fjern('${k.id}')">Fjern</button>
       </td>
     `;
+
     tbody.appendChild(row);
   });
 });
 </script>
-
 </body>
 </html>
-
-
-
