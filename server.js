@@ -10,12 +10,13 @@ const io = require("socket.io")(server);
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, "kunder.json");
 
+/* ------------------- Middleware ------------------- */
 app.use(express.json());
-app.use(express.static(__dirname));
 
-/* -----------------------------
-   LAST / LAGRE KUNDER
------------------------------ */
+/* Serve alt fra public-mappen */
+app.use(express.static(path.join(__dirname, "public")));
+
+/* ------------------- LAST / LAGRE KUNDER ------------------- */
 let kunder = [];
 
 function lastKunder() {
@@ -35,9 +36,7 @@ function lagreKunder() {
 
 lastKunder();
 
-/* -----------------------------
-   SOCKET.IO
------------------------------ */
+/* ------------------- SOCKET.IO ------------------- */
 io.on("connection", socket => {
   socket.emit("oppdater", kunder);
 
@@ -63,16 +62,12 @@ io.on("connection", socket => {
   });
 });
 
-/* -----------------------------
-   DEFAULT ROUTE
------------------------------ */
+/* ------------------- DEFAULT ROUTE ------------------- */
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-/* -----------------------------
-   START SERVER
------------------------------ */
+/* ------------------- START SERVER ------------------- */
 server.listen(PORT, () => {
   console.log(`Server kjører på port ${PORT}`);
 });
