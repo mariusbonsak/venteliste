@@ -3,64 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <title>Venteliste – Storskjerm</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #8e8e8e; /* Nardo Grey */
+  background: #8e8e8e;  /* Nardo Grey */
   margin: 0;
   padding: 30px;
-  color: #f3f4f6;   /* Lys tekst for kontrast */
+  color: #f3f3f3;
 }
+
 h2 {
   text-align: center;
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 30px;
+  color: #f3f3f3;
 }
+
 table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: #1c1c1c;   /* mørk tabellbakgrunn */
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
   font-size: 36px;
+  color: #f3f3f3;
 }
+
 th, td {
   padding: 22px;
   text-align: center;
 }
+
 th {
-  background: #e9ecef;
+  background: #2c2c2c;
   font-weight: 700;
+  color: #f3f3f3;
 }
-.status-gronn td { background-color: #e6f4ea !important; }
-.status-gul td   { background-color: #fff8e1 !important; }
-.status-rod td   { background-color: #fdecea !important; }
+
+/* STATUSFARGER FOR KUNDER */
+.status-gronn td { background-color: #2d6a4f !important; color: #f3f3f3 !important; }
+.status-gul td   { background-color: #f5c32c !important; color: #1c1c1c !important; }
+.status-rod td   { background-color: #d62828 !important; color: #f3f3f3 !important; }
+
 @media (max-width: 1200px) {
   table { font-size: 26px; }
   th, td { padding: 14px; }
 }
 </style>
 </head>
-
 <body>
 
 <h2>Ventende kunder</h2>
 
 <table>
-<thead>
-<tr>
-  <th>Ordre</th>
-  <th>Navn</th>
-  <th>Reg.nr</th>
-  <th>Ventetid</th>
-  <th>Forventet klar</th>
-  <th>Status</th>
-</tr>
-</thead>
-<tbody id="liste"></tbody>
+  <thead>
+    <tr>
+      <th>Ordre</th>
+      <th>Navn</th>
+      <th>Reg.nr</th>
+      <th>Ventetid (min)</th>
+      <th>Forventet klar</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody id="liste"></tbody>
 </table>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -68,6 +78,7 @@ th {
 const socket = io();
 let kunder = [];
 
+/* Tegn tabell */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -81,12 +92,14 @@ function render() {
       const forventet = new Date();
       forventet.setHours(h,m,0,0);
       const diff = (Date.now() - forventet.getTime()) / 60000;
+
       if (diff > 60) klasse = "status-rod";
       else if (diff > 0) klasse = "status-gul";
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
+
     row.innerHTML = `
       <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
@@ -99,16 +112,19 @@ function render() {
   });
 }
 
+/* Socket.io sanntid */
 socket.on("oppdater", data => {
   kunder = data;
   render();
 });
 
+/* Oppdater ventetid hvert 30 sekund */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
 
 
 
