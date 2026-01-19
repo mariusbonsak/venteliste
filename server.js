@@ -64,19 +64,10 @@ io.on("connection", socket => {
 });
 
 /* -----------------------------
-   MEKANIKER-STEMPLING
+   DEFAULT ROUTE
 ----------------------------- */
-app.post("/jobbstatus", (req, res) => {
-  const { ordre, status } = req.body;
-
-  const kunde = kunder.find(k => k.ordre === ordre);
-  if (kunde) {
-    kunde.status = status;
-    lagreKunder();
-    io.emit("oppdater", kunder);
-  }
-
-  res.sendStatus(200);
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 /* -----------------------------
