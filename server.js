@@ -1,85 +1,87 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const server = http.createServer(app);
+const io = require("socket.io")(server);
 
-// ================================
-// PERSISTENT DATA (RENDER DISK)
-// ================================
-const DATA_DIR = "/data";
-const DATAFIL = path.join(DATA_DIR, "kunder.json");
+const PORT = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, "kunder.json");
 
-// Sørg for at mappen finnes
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+app.use(express.json());
+app.use(express.static(__dirname));
 
-// Last kunder ved oppstart
+/* -----------------------------
+   LAST / LAGRE KUNDER
+----------------------------- */
 let kunder = [];
-if (fs.existsSync(DATAFIL)) {
-  try {
-    kunder = JSON.parse(fs.readFileSync(DATAFIL, "utf8"));
-  } catch (err) {
-    console.error("Feil ved lesing av kunder.json:", err);
-    kunder = [];
+
+function lastKunder() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      kunder = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+    } catch (err) {
+      console.error("Feil ved lesing av kunder.json", err);
+      kunder = [];
+    }
   }
 }
 
-// Lagre til fil
-function lagre() {
-  fs.writeFileSync(DATAFIL, JSON.stringify(kunder, null, 2));
+function lagreKunder() {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(kunder, null, 2));
 }
 
-// ================================
-// EXPRESS
-// ================================
-app.use(express.static("public"));
+lastKunder();
 
-// ================================
-// SOCKET.IO
-// ================================
-io.on("connection", (socket) => {
-  console.log("Ny klient tilkoblet");
-
-  // Send eksisterende kunder
+/* -----------------------------
+   SOCKET.IO
+----------------------------- */
+io.on("connection", socket => {
   socket.emit("oppdater", kunder);
 
-  // Ny kunde
-  socket.on("nyKunde", (kunde) => {
+  socket.on("nyKunde", kunde => {
     kunder.push(kunde);
-    lagre();
+    lagreKunder();
     io.emit("oppdater", kunder);
   });
 
-  // Oppdater status
   socket.on("oppdaterStatus", ({ id, status }) => {
-    kunder = kunder.map(k =>
-      k.id === id ? { ...k, status } : k
-    );
-    lagre();
-    io.emit("oppdater", kunder);
+    const k = kunder.find(k => k.id === id);
+    if (k) {
+      k.status = status;
+      lagreKunder();
+      io.emit("oppdater", kunder);
+    }
   });
 
-  // Fjern kunde
-  socket.on("fjernKunde", (id) => {
+  socket.on("fjernKunde", id => {
     kunder = kunder.filter(k => k.id !== id);
-    lagre();
+    lagreKunder();
     io.emit("oppdater", kunder);
-  });
-
-  // Manuell refresh
-  socket.on("beOmOppdatering", () => {
-    socket.emit("oppdater", kunder);
   });
 });
 
-// ================================
-// START SERVER
-// ================================
-const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => {
+/* -----------------------------
+   MEKANIKER-STEMPLING
+----------------------------- */
+app.post("/jobbstatus", (req, res) => {
+  const { ordre, status } = req.body;
+
+  const kunde = kunder.find(k => k.ordre === ordre);
+  if (kunde) {
+    kunde.status = status;
+    lagreKunder();
+    io.emit("oppdater", kunder);
+  }
+
+  res.sendStatus(200);
+});
+
+/* -----------------------------
+   START SERVER
+----------------------------- */
+server.listen(PORT, () => {
   console.log(`Server kjører på port ${PORT}`);
 });
