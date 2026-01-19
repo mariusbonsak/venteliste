@@ -3,76 +3,91 @@
 <head>
 <meta charset="UTF-8">
 <title>Venteliste – Admin</title>
+
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #f8f9fa;
+  background: #f3f4f6;
   padding: 30px;
-  color: #212529;
   margin: 0;
+  color: #1f2933;
 }
+
 h2 {
   text-align: center;
   font-weight: 600;
-  color: #1c2833;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
+
+/* Inputs */
 .input-container {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
+
 input, button, select {
   padding: 10px 12px;
   font-size: 14px;
   border-radius: 6px;
   border: 1px solid #ced4da;
-  outline: none;
 }
+
 input { width: 150px; }
+
 button {
-  background-color: #007bff;
-  color: #fff;
+  background: #007bff;
+  color: white;
   border: none;
   cursor: pointer;
-  transition: 0.2s;
 }
-button:hover { background-color: #0056b3; }
-select { border-radius: 6px; }
+
+button:hover { background: #0056b3; }
+
+.storskjerm {
+  background: #28a745;
+}
+.storskjerm:hover { background: #218838; }
+
+/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #ffffff;
-  border-radius: 8px;
+  background: white;
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
+
 th, td {
-  padding: 12px;
+  padding: 14px;
   text-align: center;
-  font-size: 14px;
 }
-th { background-color: #e9ecef; color: #495057; font-weight: 600; }
-tr:nth-child(even) td { background-color: #f8f9fa; }
-.status-gronn { background-color: #e6f4ea; }
-.status-gul { background-color: #fff8e1; }
-.status-rod { background-color: #fdecea; }
-button:active { transform: scale(0.98); }
-.storskjerm-knapp {
-  background-color: #28a745;
-  margin-bottom: 15px;
+
+th {
+  background: #e9ecef;
+  font-weight: 600;
 }
-.storskjerm-knapp:hover { background-color: #218838; }
+
+/* Status colors (viktig!) */
+.status-gronn td { background-color: #e6f4ea !important; }
+.status-gul td   { background-color: #fff8e1 !important; }
+.status-rod td   { background-color: #fdecea !important; }
+
+button:active { transform: scale(0.97); }
 </style>
 </head>
+
 <body>
 
 <h2>Ventende kunder – Admin</h2>
 
 <div style="text-align:center; margin-bottom:20px;">
-  <button class="storskjerm-knapp" onclick="åpneStorskjerm()">Åpne storskjerm</button>
+  <button class="storskjerm" onclick="window.open('storskjerm.html','_blank')">
+    Åpne storskjerm
+  </button>
 </div>
 
 <div class="input-container">
@@ -83,30 +98,31 @@ button:active { transform: scale(0.98); }
 </div>
 
 <table>
-  <thead>
-    <tr>
-      <th>Navn</th>
-      <th>Reg.nr</th>
-      <th>Ventetid (min)</th>
-      <th>Forventet klar</th>
-      <th>Status</th>
-      <th>Handling</th>
-    </tr>
-  </thead>
-  <tbody id="liste"></tbody>
+<thead>
+<tr>
+  <th>Navn</th>
+  <th>Reg.nr</th>
+  <th>Ventetid (min)</th>
+  <th>Forventet klar</th>
+  <th>Status</th>
+  <th>Handling</th>
+</tr>
+</thead>
+<tbody id="liste"></tbody>
 </table>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let kunderData = [];
+let kunder = [];
 
-// --- Legg til kunde ---
+/* Legg til kunde */
 function leggTil() {
   const navn = document.getElementById("navn").value.trim();
   const regnr = document.getElementById("regnr").value.trim();
   const klarTid = document.getElementById("klarTid").value;
-  if (!navn) { alert("Skriv inn navn"); return; }
+
+  if (!navn) return alert("Skriv inn navn");
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
@@ -122,36 +138,33 @@ function leggTil() {
   document.getElementById("klarTid").value = "";
 }
 
-// --- Endre status ---
+/* Endre status */
 function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
-// --- Fjern kunde ---
+/* Fjern kunde */
 function fjern(id) {
   socket.emit("fjernKunde", id);
 }
 
-// --- Åpne storskjerm ---
-function åpneStorskjerm() {
-  window.open('storskjerm.html', '_blank');
-}
-
-// --- Oppdater tabell ---
-function oppdaterTabell() {
+/* Tegn tabell */
+function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
 
-  kunderData.forEach(k => {
-    const ventetid = Math.floor((Date.now() - k.startTid)/60000);
+  kunder.forEach(k => {
+    const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
 
     let klasse = "status-gronn";
     if (k.klarTid) {
       const [h,m] = k.klarTid.split(":").map(Number);
-      const forventet = new Date(); forventet.setHours(h,m,0,0);
-      const diff = (Date.now() - forventet.getTime())/60000;
-      if(diff > 60) klasse="status-rod";
-      else if(diff > 0) klasse="status-gul";
+      const forventet = new Date();
+      forventet.setHours(h,m,0,0);
+      const diff = (Date.now() - forventet.getTime()) / 60000;
+
+      if (diff > 60) klasse = "status-rod";
+      else if (diff > 0) klasse = "status-gul";
     }
 
     const row = document.createElement("tr");
@@ -159,9 +172,9 @@ function oppdaterTabell() {
 
     row.innerHTML = `
       <td>${k.navn}</td>
-      <td>${k.regnr||""}</td>
+      <td>${k.regnr || ""}</td>
       <td>${ventetid}</td>
-      <td>${k.klarTid||""}</td>
+      <td>${k.klarTid || ""}</td>
       <td>
         <select onchange="endreStatus('${k.id}',this.value)">
           <option ${k.status==="Venter"?"selected":""}>Venter</option>
@@ -169,22 +182,25 @@ function oppdaterTabell() {
           <option ${k.status==="Klar"?"selected":""}>Klar</option>
         </select>
       </td>
-      <td><button onclick="fjern('${k.id}')">Fjern</button></td>`;
+      <td><button onclick="fjern('${k.id}')">Fjern</button></td>
+    `;
+
     tbody.appendChild(row);
   });
 }
 
-// --- Socket.io sanntid ---
+/* Socket.io */
 socket.on("oppdater", data => {
-  kunderData = data;
-  oppdaterTabell();
+  kunder = data;
+  render();
 });
 
-// --- Oppdater hvert 30 sek for sanntid ventetid ---
-setInterval(oppdaterTabell, 30000);
-
+/* Sanntidsoppdatering */
+setInterval(render, 30000);
 </script>
+
 </body>
 </html>
+
 
 
