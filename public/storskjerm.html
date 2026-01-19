@@ -12,15 +12,12 @@ body {
   padding: 30px;
   color: #1f2933;
 }
-
 h2 {
   text-align: center;
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 30px;
 }
-
-/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -30,22 +27,17 @@ table {
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
   font-size: 36px;
 }
-
 th, td {
   padding: 22px;
   text-align: center;
 }
-
 th {
   background: #e9ecef;
   font-weight: 700;
 }
-
-/* VIKTIG: Status-farger MÅ vinne */
 .status-gronn td { background-color: #e6f4ea !important; }
 .status-gul td   { background-color: #fff8e1 !important; }
 .status-rod td   { background-color: #fdecea !important; }
-
 @media (max-width: 1200px) {
   table { font-size: 26px; }
   th, td { padding: 14px; }
@@ -60,9 +52,10 @@ th {
 <table>
 <thead>
 <tr>
+  <th>Ordre</th>
   <th>Navn</th>
   <th>Reg.nr</th>
-  <th>Ventetid (min)</th>
+  <th>Ventetid</th>
   <th>Forventet klar</th>
   <th>Status</th>
 </tr>
@@ -75,7 +68,6 @@ th {
 const socket = io();
 let kunder = [];
 
-/* Tegn tabell */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -89,38 +81,35 @@ function render() {
       const forventet = new Date();
       forventet.setHours(h,m,0,0);
       const diff = (Date.now() - forventet.getTime()) / 60000;
-
       if (diff > 60) klasse = "status-rod";
       else if (diff > 0) klasse = "status-gul";
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
-
     row.innerHTML = `
+      <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
       <td>${ventetid}</td>
       <td>${k.klarTid || ""}</td>
       <td>${k.status}</td>
     `;
-
     tbody.appendChild(row);
   });
 }
 
-/* Socket.io sanntid */
 socket.on("oppdater", data => {
   kunder = data;
   render();
 });
 
-/* Sanntids ventetid */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
 
 
 </body>
