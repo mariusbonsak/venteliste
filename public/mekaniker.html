@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Jobbstatus – Mekaniker</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #e5e7eb;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+select {
+  width: 100%;
+  padding: 14px;
+  font-size: 18px;
+  margin-bottom: 25px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 18px;
+  font-size: 20px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  color: white;
+}
+
+.start { background: #007bff; }
+.pause { background: #ffc107; color: #333; }
+.ferdig { background: #28a745; }
+
+button:active { transform: scale(0.97); }
+</style>
+</head>
+
+<body>
+
+<h2>Jobbstatus</h2>
+
+<select id="ordre"></select>
+
+<button class="start" onclick="sendStatus('Under arbeid')">▶ Start jobb</button>
+<button class="pause" onclick="sendStatus('Venter')">⏸ Pause</button>
+<button class="ferdig" onclick="sendStatus('Klar')">✅ Ferdig</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let kunder = [];
+
+/* Fyll ordreliste */
+socket.on("oppdater", data => {
+  kunder = data;
+  const select = document.getElementById("ordre");
+  select.innerHTML = "";
+
+  kunder.forEach(k => {
+    if(k.status !== "Klar") {
+      const opt = document.createElement("option");
+      opt.value = k.ordre;
+      opt.textContent = `${k.ordre} – ${k.navn}`;
+      select.appendChild(opt);
+    }
+  });
+});
+
+/* Send status */
+function sendStatus(status) {
+  const ordre = document.getElementById("ordre").value;
+  if(!ordre) return alert("Velg ordre");
+
+  fetch("/jobbstatus", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ordre, status })
+  });
+}
+</script>
+
+</body>
+</html>
