@@ -24,6 +24,18 @@ h2 {
   margin: auto;
 }
 
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+a {
+  text-decoration: none;
+  font-weight: 600;
+  color: #1f2933;
+}
+
 input, select, button {
   padding: 10px;
   margin: 5px;
@@ -66,24 +78,13 @@ th {
 .status-gronn td { background-color: #d1fae5; }
 .status-gul td   { background-color: #fde68a; }
 .status-rod td   { background-color: #fecaca; }
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-a {
-  text-decoration: none;
-  font-weight: 600;
-  color: #1f2933;
-}
 </style>
 </head>
 
 <body>
 
 <div class="container">
+
   <div class="topbar">
     <h2>Ventende kunder</h2>
     <a href="/storskjerm.html" target="_blank">📺 Storskjerm</a>
@@ -109,15 +110,15 @@ a {
     </thead>
     <tbody id="liste"></tbody>
   </table>
+
 </div>
 
+<!-- 🔐 PIN kun for admin -->
 <script>
-/* 🔐 PIN-BESKYTTELSE (kun admin) */
 const PIN_KODE = "1250";
 
 if (!sessionStorage.getItem("autorisert")) {
   const pin = prompt("Skriv PIN-kode");
-
   if (pin !== PIN_KODE) {
     alert("Feil PIN");
     location.reload();
@@ -132,13 +133,23 @@ if (!sessionStorage.getItem("autorisert")) {
 const socket = io();
 let kunder = [];
 
+/* Input-elementer */
+const ordreEl = document.getElementById("ordre");
+const navnEl = document.getElementById("navn");
+const regnrEl = document.getElementById("regnr");
+const klarTidEl = document.getElementById("klarTid");
+
+/* Legg til kunde */
 function leggTil() {
-  const ordre = ordreEl.value;
-  const navn = navnEl.value;
-  const regnr = regnrEl.value;
+  const ordre = ordreEl.value.trim();
+  const navn = navnEl.value.trim();
+  const regnr = regnrEl.value.trim();
   const klarTid = klarTidEl.value;
 
-  if (!navn || !ordre) return alert("Ordre og navn er påkrevd");
+  if (!ordre || !navn) {
+    alert("Ordrenr og navn er påkrevd");
+    return;
+  }
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
@@ -150,22 +161,31 @@ function leggTil() {
     status: "Venter"
   });
 
-  ordreEl.value = navnEl.value = regnrEl.value = "";
+  ordreEl.value = "";
+  navnEl.value = "";
+  regnrEl.value = "";
+  klarTidEl.value = "";
 }
 
+/* Endre status */
 function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
+/* Fjern kunde */
 function fjern(id) {
-  socket.emit("fjernKunde", id);
+  if (confirm("Fjerne kunde?")) {
+    socket.emit("fjernKunde", id);
+  }
 }
 
+/* Oppdater liste */
 socket.on("oppdater", data => {
   kunder = data;
   render();
 });
 
+/* Render tabell */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -175,9 +195,9 @@ function render() {
 
     let klasse = "status-gronn";
     if (k.klarTid) {
-      const [h,m] = k.klarTid.split(":").map(Number);
+      const [h, m] = k.klarTid.split(":").map(Number);
       const forventet = new Date();
-      forventet.setHours(h,m,0,0);
+      forventet.setHours(h, m, 0, 0);
       const diff = (Date.now() - forventet.getTime()) / 60000;
 
       if (diff > 60) klasse = "status-rod";
@@ -200,17 +220,22 @@ function render() {
           <option ${k.status === "Klar" ? "selected" : ""}>Klar</option>
         </select>
       </td>
-      <td><button onclick="fjern('${k.id}')">Fjern</button></td>
+      <td>
+        <button onclick="fjern('${k.id}')">Fjern</button>
+      </td>
     `;
     tbody.appendChild(row);
   });
 }
 
+/* Oppdater ventetid hvert 30. sekund */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
+
 
 
 
