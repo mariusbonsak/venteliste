@@ -12,14 +12,11 @@ body {
   margin: 0;
   color: #1f2933;
 }
-
 h2 {
   text-align: center;
   font-weight: 600;
   margin-bottom: 25px;
 }
-
-/* Inputs */
 .input-container {
   display: flex;
   justify-content: center;
@@ -27,31 +24,24 @@ h2 {
   gap: 10px;
   margin-bottom: 25px;
 }
-
 input, button, select {
   padding: 10px 12px;
   font-size: 14px;
   border-radius: 6px;
   border: 1px solid #ced4da;
 }
-
 input { width: 150px; }
-
 button {
   background: #007bff;
   color: white;
   border: none;
   cursor: pointer;
 }
-
 button:hover { background: #0056b3; }
-
 .storskjerm {
   background: #28a745;
 }
 .storskjerm:hover { background: #218838; }
-
-/* Table */
 table {
   width: 100%;
   border-collapse: collapse;
@@ -60,23 +50,17 @@ table {
   overflow: hidden;
   box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
-
 th, td {
   padding: 14px;
   text-align: center;
 }
-
 th {
   background: #e9ecef;
   font-weight: 600;
 }
-
-/* Status colors (viktig!) */
 .status-gronn td { background-color: #e6f4ea !important; }
 .status-gul td   { background-color: #fff8e1 !important; }
 .status-rod td   { background-color: #fdecea !important; }
-
-button:active { transform: scale(0.97); }
 </style>
 </head>
 
@@ -91,6 +75,7 @@ button:active { transform: scale(0.97); }
 </div>
 
 <div class="input-container">
+  <input id="ordre" placeholder="Ordrenr">
   <input id="navn" placeholder="Kundenavn">
   <input id="regnr" placeholder="Reg.nr">
   <input id="klarTid" type="time">
@@ -100,6 +85,7 @@ button:active { transform: scale(0.97); }
 <table>
 <thead>
 <tr>
+  <th>Ordre</th>
   <th>Navn</th>
   <th>Reg.nr</th>
   <th>Ventetid (min)</th>
@@ -116,16 +102,17 @@ button:active { transform: scale(0.97); }
 const socket = io();
 let kunder = [];
 
-/* Legg til kunde */
 function leggTil() {
+  const ordre = document.getElementById("ordre").value.trim();
   const navn = document.getElementById("navn").value.trim();
   const regnr = document.getElementById("regnr").value.trim();
   const klarTid = document.getElementById("klarTid").value;
 
-  if (!navn) return alert("Skriv inn navn");
+  if (!navn) return alert("Skriv inn kundenavn");
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
+    ordre,
     navn,
     regnr,
     klarTid,
@@ -133,22 +120,20 @@ function leggTil() {
     status: "Venter"
   });
 
+  document.getElementById("ordre").value = "";
   document.getElementById("navn").value = "";
   document.getElementById("regnr").value = "";
   document.getElementById("klarTid").value = "";
 }
 
-/* Endre status */
 function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
-/* Fjern kunde */
 function fjern(id) {
   socket.emit("fjernKunde", id);
 }
 
-/* Tegn tabell */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -162,15 +147,14 @@ function render() {
       const forventet = new Date();
       forventet.setHours(h,m,0,0);
       const diff = (Date.now() - forventet.getTime()) / 60000;
-
       if (diff > 60) klasse = "status-rod";
       else if (diff > 0) klasse = "status-gul";
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
-
     row.innerHTML = `
+      <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
       <td>${ventetid}</td>
@@ -184,23 +168,21 @@ function render() {
       </td>
       <td><button onclick="fjern('${k.id}')">Fjern</button></td>
     `;
-
     tbody.appendChild(row);
   });
 }
 
-/* Socket.io */
 socket.on("oppdater", data => {
   kunder = data;
   render();
 });
 
-/* Sanntidsoppdatering */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
 
 
 
