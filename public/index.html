@@ -2,100 +2,130 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Venteliste – Admin</title>
+<title>Verksted – Venteliste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: linear-gradient(180deg, #e5e7eb 0%, #d1d5db 100%);
-  padding: 30px;
+  background: #e5e7eb;
   margin: 0;
+  padding: 20px;
   color: #1f2933;
 }
+
 h2 {
   text-align: center;
-  font-weight: 600;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
 }
-.input-container {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 25px;
+
+.container {
+  max-width: 1200px;
+  margin: auto;
 }
-input, button, select {
-  padding: 10px 12px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: 1px solid #ced4da;
+
+input, select, button {
+  padding: 10px;
+  margin: 5px;
+  font-size: 16px;
 }
-input { width: 150px; }
+
 button {
-  background: #007bff;
+  background: #1f2933;
   color: white;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
 }
-button:hover { background: #0056b3; }
-.storskjerm {
-  background: #28a745;
+
+button:hover {
+  opacity: 0.9;
 }
-.storskjerm:hover { background: #218838; }
+
 table {
   width: 100%;
   border-collapse: collapse;
   background: white;
+  margin-top: 20px;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
+
 th, td {
-  padding: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px;
   text-align: center;
 }
+
 th {
-  background: #e9ecef;
+  background: #f3f4f6;
   font-weight: 600;
 }
-.status-gronn td { background-color: #e6f4ea !important; }
-.status-gul td   { background-color: #fff8e1 !important; }
-.status-rod td   { background-color: #fdecea !important; }
+
+/* STATUSFARGER */
+.status-gronn td { background-color: #d1fae5; }
+.status-gul td   { background-color: #fde68a; }
+.status-rod td   { background-color: #fecaca; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+a {
+  text-decoration: none;
+  font-weight: 600;
+  color: #1f2933;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Ventende kunder – Admin</h2>
+<div class="container">
+  <div class="topbar">
+    <h2>Ventende kunder</h2>
+    <a href="/storskjerm.html" target="_blank">📺 Storskjerm</a>
+  </div>
 
-<div style="text-align:center; margin-bottom:20px;">
-  <button class="storskjerm" onclick="window.open('storskjerm.html','_blank')">
-    Åpne storskjerm
-  </button>
-</div>
-
-<div class="input-container">
   <input id="ordre" placeholder="Ordrenr">
   <input id="navn" placeholder="Kundenavn">
   <input id="regnr" placeholder="Reg.nr">
   <input id="klarTid" type="time">
   <button onclick="leggTil()">Legg til</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Ordre</th>
+        <th>Navn</th>
+        <th>Reg.nr</th>
+        <th>Ventetid (min)</th>
+        <th>Forventet klar</th>
+        <th>Status</th>
+        <th>Handling</th>
+      </tr>
+    </thead>
+    <tbody id="liste"></tbody>
+  </table>
 </div>
 
-<table>
-<thead>
-<tr>
-  <th>Ordre</th>
-  <th>Navn</th>
-  <th>Reg.nr</th>
-  <th>Ventetid (min)</th>
-  <th>Forventet klar</th>
-  <th>Status</th>
-  <th>Handling</th>
-</tr>
-</thead>
-<tbody id="liste"></tbody>
-</table>
+<script>
+/* 🔐 PIN-BESKYTTELSE (kun admin) */
+const PIN_KODE = "1250";
+
+if (!sessionStorage.getItem("autorisert")) {
+  const pin = prompt("Skriv PIN-kode");
+
+  if (pin !== PIN_KODE) {
+    alert("Feil PIN");
+    location.reload();
+  } else {
+    sessionStorage.setItem("autorisert", "ja");
+  }
+}
+</script>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -103,12 +133,12 @@ const socket = io();
 let kunder = [];
 
 function leggTil() {
-  const ordre = document.getElementById("ordre").value.trim();
-  const navn = document.getElementById("navn").value.trim();
-  const regnr = document.getElementById("regnr").value.trim();
-  const klarTid = document.getElementById("klarTid").value;
+  const ordre = ordreEl.value;
+  const navn = navnEl.value;
+  const regnr = regnrEl.value;
+  const klarTid = klarTidEl.value;
 
-  if (!navn) return alert("Skriv inn kundenavn");
+  if (!navn || !ordre) return alert("Ordre og navn er påkrevd");
 
   socket.emit("nyKunde", {
     id: Date.now().toString(),
@@ -120,10 +150,7 @@ function leggTil() {
     status: "Venter"
   });
 
-  document.getElementById("ordre").value = "";
-  document.getElementById("navn").value = "";
-  document.getElementById("regnr").value = "";
-  document.getElementById("klarTid").value = "";
+  ordreEl.value = navnEl.value = regnrEl.value = "";
 }
 
 function endreStatus(id, status) {
@@ -133,6 +160,11 @@ function endreStatus(id, status) {
 function fjern(id) {
   socket.emit("fjernKunde", id);
 }
+
+socket.on("oppdater", data => {
+  kunder = data;
+  render();
+});
 
 function render() {
   const tbody = document.getElementById("liste");
@@ -147,23 +179,25 @@ function render() {
       const forventet = new Date();
       forventet.setHours(h,m,0,0);
       const diff = (Date.now() - forventet.getTime()) / 60000;
+
       if (diff > 60) klasse = "status-rod";
       else if (diff > 0) klasse = "status-gul";
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
+
     row.innerHTML = `
-      <td>${k.ordre || ""}</td>
+      <td>${k.ordre}</td>
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
       <td>${ventetid}</td>
       <td>${k.klarTid || ""}</td>
       <td>
-        <select onchange="endreStatus('${k.id}',this.value)">
-          <option ${k.status==="Venter"?"selected":""}>Venter</option>
-          <option ${k.status==="Under arbeid"?"selected":""}>Under arbeid</option>
-          <option ${k.status==="Klar"?"selected":""}>Klar</option>
+        <select onchange="endreStatus('${k.id}', this.value)">
+          <option ${k.status === "Venter" ? "selected" : ""}>Venter</option>
+          <option ${k.status === "Under arbeid" ? "selected" : ""}>Under arbeid</option>
+          <option ${k.status === "Klar" ? "selected" : ""}>Klar</option>
         </select>
       </td>
       <td><button onclick="fjern('${k.id}')">Fjern</button></td>
@@ -172,16 +206,12 @@ function render() {
   });
 }
 
-socket.on("oppdater", data => {
-  kunder = data;
-  render();
-});
-
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
 
 
 
