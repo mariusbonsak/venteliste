@@ -8,7 +8,7 @@
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #d1d5db; /* rolig grå */
+  background: #d6d7d9; /* rolig nardo-grå */
   margin: 0;
   padding: 40px;
   color: #111827;
@@ -18,31 +18,40 @@ h1 {
   text-align: center;
   margin-bottom: 30px;
   font-size: 42px;
+  letter-spacing: 1px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #f9fafb;
-  border-radius: 14px;
+  background: #f4f5f7;
+  border-radius: 16px;
   overflow: hidden;
 }
 
 th, td {
-  padding: 18px;
+  padding: 18px 14px;
   text-align: center;
   font-size: 26px;
 }
 
 th {
-  background: #e5e7eb;
+  background: #e1e3e6;
   font-weight: 700;
 }
 
-/* STATUSFARGER – rolig men tydelig */
-.status-gronn td { background-color: #c7e8d6; }
-.status-gul td   { background-color: #f3e6a1; }
-.status-rod td   { background-color: #f2b6b6; }
+/* ===== STATUSFARGER – balansert for TV ===== */
+.status-gronn td {
+  background-color: #cfe9dc;   /* dempet grønn */
+}
+
+.status-gul td {
+  background-color: #efe3a4;   /* varm, men rolig gul */
+}
+
+.status-rod td {
+  background-color: #e8b4b4;   /* tydelig, ikke skarp rød */
+}
 </style>
 </head>
 
@@ -74,7 +83,6 @@ socket.on("oppdater", data => {
   render();
 });
 
-/* Render storskjerm */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -82,7 +90,7 @@ function render() {
   kunder.forEach(k => {
     const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
 
-    // 🎯 Samme fargelogikk som admin
+    /* 🎯 KORREKT FARGELOGIKK */
     let klasse = "status-gronn";
 
     if (k.klarTid) {
@@ -111,15 +119,17 @@ function render() {
       <td>${k.klarTid || ""}</td>
       <td>${k.status}</td>
     `;
+
     tbody.appendChild(row);
   });
 }
 
-/* Oppdater ventetid & farger hvert 30. sekund */
+/* Oppdater farger & ventetid automatisk */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
+
 
 
