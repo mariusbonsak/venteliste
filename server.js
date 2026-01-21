@@ -11,8 +11,9 @@ const io = new Server(server);
 /* ================================
    FILLAGRING
 ================================ */
-const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
+const DATA_DIR = "/data";
 const DATA_FILE = path.join(DATA_DIR, "kunder.json");
+
 
 let kunder = [];
 
@@ -100,5 +101,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server kjører på port ${PORT}`);
 });
+
 
 
