@@ -8,56 +8,47 @@
 <style>
 body {
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #8e8e8e;  /* Nardo Grey */
+  background: #d1d5db; /* rolig grå */
   margin: 0;
-  padding: 30px;
-  color: #f3f3f3;
+  padding: 40px;
+  color: #111827;
 }
 
-h2 {
+h1 {
   text-align: center;
-  font-size: 48px;
-  font-weight: 700;
   margin-bottom: 30px;
-  color: #f3f3f3;
+  font-size: 42px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #1c1c1c;   /* mørk tabellbakgrunn */
+  background: #f9fafb;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-  font-size: 36px;
-  color: #f3f3f3;
 }
 
 th, td {
-  padding: 22px;
+  padding: 18px;
   text-align: center;
+  font-size: 26px;
 }
 
 th {
-  background: #2c2c2c;
+  background: #e5e7eb;
   font-weight: 700;
-  color: #f3f3f3;
 }
 
-/* STATUSFARGER FOR KUNDER */
-.status-gronn td { background-color: #2d6a4f !important; color: #f3f3f3 !important; }
-.status-gul td   { background-color: #f5c32c !important; color: #1c1c1c !important; }
-.status-rod td   { background-color: #d62828 !important; color: #f3f3f3 !important; }
-
-@media (max-width: 1200px) {
-  table { font-size: 26px; }
-  th, td { padding: 14px; }
-}
+/* STATUSFARGER – rolig men tydelig */
+.status-gronn td { background-color: #c7e8d6; }
+.status-gul td   { background-color: #f3e6a1; }
+.status-rod td   { background-color: #f2b6b6; }
 </style>
 </head>
+
 <body>
 
-<h2>Ventende kunder</h2>
+<h1>Ventende kunder</h1>
 
 <table>
   <thead>
@@ -65,7 +56,7 @@ th {
       <th>Ordre</th>
       <th>Navn</th>
       <th>Reg.nr</th>
-      <th>Ventetid (min)</th>
+      <th>Ventetid</th>
       <th>Forventet klar</th>
       <th>Status</th>
     </tr>
@@ -78,7 +69,12 @@ th {
 const socket = io();
 let kunder = [];
 
-/* Tegn tabell */
+socket.on("oppdater", data => {
+  kunder = data;
+  render();
+});
+
+/* Render storskjerm */
 function render() {
   const tbody = document.getElementById("liste");
   tbody.innerHTML = "";
@@ -86,25 +82,32 @@ function render() {
   kunder.forEach(k => {
     const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
 
+    // 🎯 Samme fargelogikk som admin
     let klasse = "status-gronn";
-    if (k.klarTid) {
-      const [h,m] = k.klarTid.split(":").map(Number);
-      const forventet = new Date();
-      forventet.setHours(h,m,0,0);
-      const diff = (Date.now() - forventet.getTime()) / 60000;
 
-      if (diff > 60) klasse = "status-rod";
-      else if (diff > 0) klasse = "status-gul";
+    if (k.klarTid) {
+      const [h, m] = k.klarTid.split(":").map(Number);
+      const forventet = new Date();
+      forventet.setHours(h, m, 0, 0);
+
+      const minutterTilKlar =
+        (forventet.getTime() - Date.now()) / 60000;
+
+      if (minutterTilKlar < 0) {
+        klasse = "status-rod";
+      } else if (minutterTilKlar <= 30) {
+        klasse = "status-gul";
+      }
     }
 
     const row = document.createElement("tr");
     row.className = klasse;
 
     row.innerHTML = `
-      <td>${k.ordre || ""}</td>
+      <td>${k.ordre}</td>
       <td>${k.navn}</td>
       <td>${k.regnr || ""}</td>
-      <td>${ventetid}</td>
+      <td>${ventetid} min</td>
       <td>${k.klarTid || ""}</td>
       <td>${k.status}</td>
     `;
@@ -112,22 +115,11 @@ function render() {
   });
 }
 
-/* Socket.io sanntid */
-socket.on("oppdater", data => {
-  kunder = data;
-  render();
-});
-
-/* Oppdater ventetid hvert 30 sekund */
+/* Oppdater ventetid & farger hvert 30. sekund */
 setInterval(render, 30000);
 </script>
 
 </body>
 </html>
 
-
-
-
-</body>
-</html>
 
