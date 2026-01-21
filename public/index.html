@@ -115,7 +115,7 @@ th {
 
 <!-- 🔐 PIN kun for admin -->
 <script>
-const PIN_KODE = "1250";
+const PIN_KODE = "1234";
 
 if (!sessionStorage.getItem("autorisert")) {
   const pin = prompt("Skriv PIN-kode");
@@ -172,6 +172,26 @@ function endreStatus(id, status) {
   socket.emit("oppdaterStatus", { id, status });
 }
 
+/* Rediger forventet klar */
+function redigerKlarTid(id, gammelTid) {
+  const nyTid = prompt(
+    "Ny forventet klar-tid (HH:MM)",
+    gammelTid
+  );
+
+  if (!nyTid) return;
+
+  if (!/^\d{2}:\d{2}$/.test(nyTid)) {
+    alert("Ugyldig tid. Bruk HH:MM");
+    return;
+  }
+
+  socket.emit("oppdaterKlarTid", {
+    id,
+    klarTid: nyTid
+  });
+}
+
 /* Fjern kunde */
 function fjern(id) {
   if (confirm("Fjerne kunde?")) {
@@ -221,6 +241,7 @@ function render() {
         </select>
       </td>
       <td>
+        <button onclick="redigerKlarTid('${k.id}', '${k.klarTid || ""}')">Rediger</button>
         <button onclick="fjern('${k.id}')">Fjern</button>
       </td>
     `;
@@ -234,6 +255,8 @@ setInterval(render, 30000);
 
 </body>
 </html>
+
+
 
 
 
