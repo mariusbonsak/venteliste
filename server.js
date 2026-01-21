@@ -1,51 +1,67 @@
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
-const http = require("http");
 
 const app = express();
 const server = http.createServer(app);
-const io = require("socket.io")(server);
+const io = new Server(server);
 
-const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, "kunder.json");
+/* ================================
+   FILLAGRING
+================================ */
+const DATA_DIR = process.env.RENDER_DISK_PATH || __dirname;
+const DATA_FILE = path.join(DATA_DIR, "kunder.json");
 
-/* ------------------- Middleware ------------------- */
-app.use(express.json());
-
-/* Serve alt fra public-mappen */
-app.use(express.static(path.join(__dirname, "public")));
-
-/* ------------------- LAST / LAGRE KUNDER ------------------- */
 let kunder = [];
 
+// Last kunder fra fil
 function lastKunder() {
-  if (fs.existsSync(DATA_FILE)) {
-    try {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
       kunder = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    } catch (err) {
-      console.error("Feil ved lesing av kunder.json", err);
-      kunder = [];
+      console.log("Kunder lastet fra fil");
     }
+  } catch (err) {
+    console.error("Feil ved lasting av kunder:", err);
+    kunder = [];
   }
 }
 
+// Lagre kunder til fil
 function lagreKunder() {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(kunder, null, 2));
+  try {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(kunder, null, 2));
+  } catch (err) {
+    console.error("Feil ved lagring:", err);
+  }
 }
 
 lastKunder();
 
-/* ------------------- SOCKET.IO ------------------- */
+/* ================================
+   STATISKE FILER
+================================ */
+app.use(express.static(path.join(__dirname, "public")));
+
+/* ================================
+   SOCKET.IO
+================================ */
 io.on("connection", socket => {
+  console.log("Klient koblet til");
+
+  // Send eksisterende kunder
   socket.emit("oppdater", kunder);
 
+  // Ny kunde
   socket.on("nyKunde", kunde => {
     kunder.push(kunde);
     lagreKunder();
     io.emit("oppdater", kunder);
   });
 
+  // Endre status
   socket.on("oppdaterStatus", ({ id, status }) => {
     const k = kunder.find(k => k.id === id);
     if (k) {
@@ -55,19 +71,34 @@ io.on("connection", socket => {
     }
   });
 
+  // 🔧 Rediger forventet klar
+  socket.on("oppdaterKlarTid", ({ id, klarTid }) => {
+    const k = kunder.find(k => k.id === id);
+    if (k) {
+      k.klarTid = klarTid;
+      lagreKunder();
+      io.emit("oppdater", kunder);
+    }
+  });
+
+  // Fjern kunde
   socket.on("fjernKunde", id => {
     kunder = kunder.filter(k => k.id !== id);
     lagreKunder();
     io.emit("oppdater", kunder);
   });
+
+  socket.on("disconnect", () => {
+    console.log("Klient koblet fra");
+  });
 });
 
-/* ------------------- DEFAULT ROUTE ------------------- */
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-/* ------------------- START SERVER ------------------- */
+/* ================================
+   START SERVER
+================================ */
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server kjører på port ${PORT}`);
 });
+
+
