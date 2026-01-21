@@ -221,7 +221,7 @@ function render() {
       <td>
         <select onchange="endreStatus('${k.id}', this.value)">
           <option ${k.status === "Venter" ? "selected" : ""}>Venter</option>
-          <option ${k.status === "Under arbeid" ? "selected" : ""}>Under arbeid</option>
+          <option ${k.status === "Under kontroll" ? "selected" : ""}>Under kontroll</option>
           <option ${k.status === "Klar" ? "selected" : ""}>Klar</option>
         </select>
       </td>
@@ -240,6 +240,7 @@ setInterval(render, 30000);
 
 </body>
 </html>
+
 
 
 
