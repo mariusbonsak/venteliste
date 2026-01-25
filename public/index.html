@@ -3,29 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <title>VerkstedFlow</title>
+
 <style>
 body {
-  font-family: Arial;
-  background: #1f2933;
-  color: #fff;
-  padding: 30px;
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #1c1f23;
+  color: #eaeaea;
 }
 
-.login, .app {
-  max-width: 900px;
-  margin: auto;
+.login-box {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-input, button {
-  padding: 8px;
-  margin: 4px;
+.login-card {
+  background: #2a2f35;
+  padding: 40px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+
+.login-card h2 {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: none;
+}
+
+.login-card button {
+  width: 100%;
+  padding: 10px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.login-card button:hover {
+  background: #357abd;
+}
+
+.app {
+  padding: 25px;
+  display: none;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-bar button {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
   margin-top: 20px;
-  background: #2d3748;
+  border-collapse: collapse;
+  background: #2a2f35;
 }
 
 th, td {
@@ -35,21 +88,29 @@ th, td {
 }
 
 .gronn { background: #1f7a3f; }
-.gul { background: #b59b2a; }
-.rod { background: #8b1e1e; }
+.gul   { background: #b59b2a; }
+.rod   { background: #8b1e1e; }
 </style>
 </head>
+
 <body>
 
-<div class="login">
-  <h2>Innlogging</h2>
-  <input id="bruker" placeholder="Brukernavn">
-  <input id="pin" placeholder="PIN">
-  <button onclick="login()">Logg inn</button>
+<!-- LOGIN -->
+<div class="login-box">
+  <div class="login-card">
+    <h2>VerkstedFlow</h2>
+    <input id="bruker" placeholder="Brukernavn">
+    <input id="pin" type="password" placeholder="PIN-kode">
+    <button onclick="login()">Logg inn</button>
+  </div>
 </div>
 
-<div class="app" style="display:none">
-  <h2>Venteliste</h2>
+<!-- APP -->
+<div class="app">
+  <div class="top-bar">
+    <h2>Venteliste</h2>
+    <button onclick="openScreen()">📺 Storskjerm</button>
+  </div>
 
   <input id="navn" placeholder="Kundenavn">
   <input id="regnr" placeholder="Reg.nr">
@@ -72,13 +133,13 @@ th, td {
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-let verkstedId = "";
 const socket = io();
+let verkstedId = "";
 
 function login() {
   fetch("/login", {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       brukernavn: bruker.value,
       pin: pin.value
@@ -87,11 +148,15 @@ function login() {
   .then(r => r.json())
   .then(d => {
     verkstedId = d.verkstedId;
-    document.querySelector(".login").style.display="none";
-    document.querySelector(".app").style.display="block";
+    document.querySelector(".login-box").style.display = "none";
+    document.querySelector(".app").style.display = "block";
     socket.emit("join", verkstedId);
   })
-  .catch(() => alert("Feil login"));
+  .catch(() => alert("Innlogging feilet"));
+}
+
+function openScreen() {
+  window.open(`/screen.html?verksted=${verkstedId}`, "_blank");
 }
 
 function leggTil() {
@@ -113,7 +178,7 @@ socket.on("oppdater", data => {
       const [h,m] = k.klarTid.split(":");
       const klar = new Date();
       klar.setHours(h,m,0,0);
-      const diff = (klar - Date.now())/60000;
+      const diff = (klar - Date.now()) / 60000;
       if (diff < 0) cls = "rod";
       else if (diff <= 30) cls = "gul";
     }
@@ -123,7 +188,7 @@ socket.on("oppdater", data => {
     tr.innerHTML = `
       <td>${k.navn}</td>
       <td>${k.regnr}</td>
-      <td>${Math.floor((Date.now()-k.startTid)/60000)} min</td>
+      <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
       <td><button onclick="fjern('${k.id}')">X</button></td>
     `;
@@ -134,12 +199,11 @@ socket.on("oppdater", data => {
 function fjern(id) {
   socket.emit("fjernKunde", { id, verkstedId });
 }
-
-setInterval(()=>socket.emit("join",verkstedId),30000);
 </script>
 
 </body>
 </html>
+
 
 
 
