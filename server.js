@@ -43,17 +43,30 @@ app.post("/login", (req, res) => {
   const { brukernavn, pin } = req.body;
   const users = JSON.parse(fs.readFileSync(USERS_FILE));
 
-  const user = users.find(
+  const userIndex = users.findIndex(
     u => u.brukernavn === brukernavn && u.pin === pin
   );
 
-  if (!user) {
-    return res.status(401).json({ error: "Feil login" });
+  if (userIndex === -1) {
+    return res.status(401).json({ error: "Feil brukernavn eller PIN" });
   }
+
+  const user = users[userIndex];
+  const now = Date.now();
+
+  if (user.lastLogin && now - user.lastLogin < 24 * 60 * 60 * 1000) {
+    return res.status(403).json({
+      error: "Du kan kun logge inn én gang per 24 timer"
+    });
+  }
+
+  users[userIndex].lastLogin = now;
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 
   req.session.user = user;
   res.json({ verkstedId: user.verkstedId });
 });
+
 
 /* --------- SOCKET.IO --------- */
 io.on("connection", socket => {
@@ -91,5 +104,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log("Server kjører på port", PORT);
 });
+
 
 
