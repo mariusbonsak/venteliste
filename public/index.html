@@ -2,16 +2,17 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>VerkstedFlow</title>
+<title>Venteliste</title>
 
 <style>
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
-  background: #1c1f23;
-  color: #eaeaea;
+  background: #f1f3f5;
+  color: #1f1f1f;
 }
 
+/* LOGIN */
 .login-box {
   height: 100vh;
   display: flex;
@@ -20,33 +21,36 @@ body {
 }
 
 .login-card {
-  background: #2a2f35;
+  background: #ffffff;
   padding: 40px;
-  border-radius: 12px;
+  border-radius: 14px;
   width: 320px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  box-shadow: 0 12px 30px rgba(0,0,0,.12);
 }
 
 .login-card h2 {
   text-align: center;
   margin-bottom: 25px;
+  font-weight: 600;
 }
 
 .login-card input {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
-  border-radius: 6px;
-  border: none;
+  padding: 11px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 15px;
 }
 
 .login-card button {
   width: 100%;
-  padding: 10px;
+  padding: 11px;
   background: #4a90e2;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -54,6 +58,7 @@ body {
   background: #357abd;
 }
 
+/* APP */
 .app {
   padding: 25px;
   display: none;
@@ -65,31 +70,56 @@ body {
   align-items: center;
 }
 
+.top-bar h2 {
+  margin: 0;
+}
+
 .top-bar button {
-  background: #444;
+  background: #3a3f45;
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
+/* INPUTS */
+input {
+  padding: 8px;
+  margin: 6px 4px 6px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* TABLE */
 table {
   width: 100%;
-  margin-top: 20px;
+  margin-top: 18px;
   border-collapse: collapse;
-  background: #2a2f35;
+  background: #ffffff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+th {
+  background: #e9ecef;
+  font-weight: 600;
 }
 
 th, td {
-  padding: 10px;
+  padding: 12px;
   text-align: center;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.gronn { background: #1f7a3f; }
-.gul   { background: #b59b2a; }
-.rod   { background: #8b1e1e; }
+/* STATUS FARGER */
+.gronn { background: #d4edda; }
+.gul   { background: #fff3cd; }
+.rod   { background: #f8d7da; }
+
+button {
+  cursor: pointer;
+}
 </style>
 </head>
 
@@ -98,7 +128,7 @@ th, td {
 <!-- LOGIN -->
 <div class="login-box">
   <div class="login-card">
-    <h2>VerkstedFlow</h2>
+    <h2>Venteliste</h2>
     <input id="bruker" placeholder="Brukernavn">
     <input id="pin" type="password" placeholder="PIN-kode">
     <button onclick="login()">Logg inn</button>
@@ -112,18 +142,20 @@ th, td {
     <button onclick="openScreen()">📺 Storskjerm</button>
   </div>
 
-  <input id="navn" placeholder="Kundenavn">
-  <input id="regnr" placeholder="Reg.nr">
-  <input id="klarTid" type="time">
-  <button onclick="leggTil()">Legg til</button>
+  <div style="margin-top:15px">
+    <input id="navn" placeholder="Kundenavn">
+    <input id="regnr" placeholder="Reg.nr">
+    <input id="klarTid" type="time">
+    <button onclick="leggTil()">Legg til</button>
+  </div>
 
   <table>
     <thead>
       <tr>
-        <th>Navn</th>
+        <th>Kunde</th>
         <th>Reg.nr</th>
         <th>Ventetid</th>
-        <th>Klar</th>
+        <th>Forventet klar</th>
         <th></th>
       </tr>
     </thead>
@@ -203,6 +235,8 @@ function fjern(id) {
 
 </body>
 </html>
+
+
 
 
 
