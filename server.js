@@ -9,9 +9,24 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const USERS_FILE = "./data/users.json";
-const KUNDER_FILE = "./data/kunder.json";
+const DATA_DIR = path.join(__dirname, "data");
+const USERS_FILE = path.join(DATA_DIR, "users.json");
+const KUNDER_FILE = path.join(DATA_DIR, "kunder.json");
 
+/* --------- SIKRER AT FILER FINNES --------- */
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify([
+    { brukernavn: "admin", pin: "1234", verkstedId: "verksted1" }
+  ], null, 2));
+}
+
+if (!fs.existsSync(KUNDER_FILE)) {
+  fs.writeFileSync(KUNDER_FILE, JSON.stringify([], null, 2));
+}
+
+/* --------- MIDDLEWARE --------- */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -21,25 +36,12 @@ app.use(session({
   saveUninitialized: false
 }));
 
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-function lesUsers() {
-  return JSON.parse(fs.readFileSync(USERS_FILE));
-}
-
-function lesKunder() {
-  if (!fs.existsSync(KUNDER_FILE)) return [];
-  return JSON.parse(fs.readFileSync(KUNDER_FILE));
-}
-
-function lagreKunder(data) {
-  fs.writeFileSync(KUNDER_FILE, JSON.stringify(data, null, 2));
-}
-
-/* ---------- LOGIN ---------- */
+/* --------- LOGIN --------- */
 app.post("/login", (req, res) => {
   const { brukernavn, pin } = req.body;
-  const users = lesUsers();
+  const users = JSON.parse(fs.readFileSync(USERS_FILE));
 
   const user = users.find(
     u => u.brukernavn === brukernavn && u.pin === pin
@@ -50,58 +52,44 @@ app.post("/login", (req, res) => {
   }
 
   req.session.user = user;
-  res.json({ ok: true });
+  res.json({ verkstedId: user.verkstedId });
 });
 
-/* ---------- SOCKET ---------- */
+/* --------- SOCKET.IO --------- */
 io.on("connection", socket => {
 
   socket.on("join", verkstedId => {
     socket.join(verkstedId);
-    const kunder = lesKunder().filter(k => k.verkstedId === verkstedId);
+    const kunder = JSON.parse(fs.readFileSync(KUNDER_FILE))
+      .filter(k => k.verkstedId === verkstedId);
     socket.emit("oppdater", kunder);
   });
 
-  socket.on("nyKunde", data => {
-    const kunder = lesKunder();
-    kunder.push(data);
-    lagreKunder(kunder);
-    io.to(data.verkstedId).emit(
-      "oppdater",
-      kunder.filter(k => k.verkstedId === data.verkstedId)
-    );
-  });
+  socket.on("nyKunde", kunde => {
+    const kunder = JSON.parse(fs.readFileSync(KUNDER_FILE));
+    kunder.push(kunde);
+    fs.writeFileSync(KUNDER_FILE, JSON.stringify(kunder, null, 2));
 
-  socket.on("oppdaterStatus", ({ id, status, verkstedId }) => {
-    const kunder = lesKunder();
-    const kunde = kunder.find(k => k.id === id);
-    if (kunde) kunde.status = status;
-    lagreKunder(kunder);
-
-    io.to(verkstedId).emit(
-      "oppdater",
-      kunder.filter(k => k.verkstedId === verkstedId)
+    io.to(kunde.verkstedId).emit("oppdater",
+      kunder.filter(k => k.verkstedId === kunde.verkstedId)
     );
   });
 
   socket.on("fjernKunde", ({ id, verkstedId }) => {
-    let kunder = lesKunder();
+    let kunder = JSON.parse(fs.readFileSync(KUNDER_FILE));
     kunder = kunder.filter(k => k.id !== id);
-    lagreKunder(kunder);
+    fs.writeFileSync(KUNDER_FILE, JSON.stringify(kunder, null, 2));
 
-    io.to(verkstedId).emit(
-      "oppdater",
+    io.to(verkstedId).emit("oppdater",
       kunder.filter(k => k.verkstedId === verkstedId)
     );
   });
 });
 
-server.listen(3000, () => {
-  console.log("Server kjører på port 3000");
+/* --------- START --------- */
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log("Server kjører på port", PORT);
 });
-;
-});
-
-
 
 
