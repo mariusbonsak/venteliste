@@ -2,54 +2,56 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>VerkstedFlow – Admin</title>
+<title>VerkstedFlow</title>
 <style>
 body {
   font-family: Arial;
-  background: #e5e7eb;
+  background: #1f2933;
+  color: #fff;
   padding: 30px;
 }
 
-.login {
-  max-width: 300px;
-  margin: 100px auto;
+.login, .app {
+  max-width: 900px;
+  margin: auto;
 }
 
-.app {
-  display: none;
+input, button {
+  padding: 8px;
+  margin: 4px;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
   margin-top: 20px;
+  background: #2d3748;
 }
 
 th, td {
-  border: 1px solid #ccc;
   padding: 10px;
   text-align: center;
+  border-bottom: 1px solid #444;
 }
 
-.status-gronn { background: #9fddb7; }
-.status-gul { background: #f2c94c; }
-.status-rod { background: #e57373; }
+.gronn { background: #1f7a3f; }
+.gul { background: #b59b2a; }
+.rod { background: #8b1e1e; }
 </style>
 </head>
 <body>
 
 <div class="login">
   <h2>Innlogging</h2>
-  <input id="bruker" placeholder="Brukernavn"><br>
-  <input id="pin" placeholder="PIN"><br>
+  <input id="bruker" placeholder="Brukernavn">
+  <input id="pin" placeholder="PIN">
   <button onclick="login()">Logg inn</button>
 </div>
 
-<div class="app">
+<div class="app" style="display:none">
   <h2>Venteliste</h2>
 
-  <input id="navn" placeholder="Navn">
+  <input id="navn" placeholder="Kundenavn">
   <input id="regnr" placeholder="Reg.nr">
   <input id="klarTid" type="time">
   <button onclick="leggTil()">Legg til</button>
@@ -61,7 +63,6 @@ th, td {
         <th>Reg.nr</th>
         <th>Ventetid</th>
         <th>Klar</th>
-        <th>Status</th>
         <th></th>
       </tr>
     </thead>
@@ -71,7 +72,7 @@ th, td {
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-let verkstedId = "nardo_vw";
+let verkstedId = "";
 const socket = io();
 
 function login() {
@@ -82,12 +83,15 @@ function login() {
       brukernavn: bruker.value,
       pin: pin.value
     })
-  }).then(r => {
-    if (!r.ok) throw "";
-    document.querySelector(".login").style.display = "none";
-    document.querySelector(".app").style.display = "block";
+  })
+  .then(r => r.json())
+  .then(d => {
+    verkstedId = d.verkstedId;
+    document.querySelector(".login").style.display="none";
+    document.querySelector(".app").style.display="block";
     socket.emit("join", verkstedId);
-  }).catch(() => alert("Feil login"));
+  })
+  .catch(() => alert("Feil login"));
 }
 
 function leggTil() {
@@ -97,23 +101,21 @@ function leggTil() {
     navn: navn.value,
     regnr: regnr.value,
     klarTid: klarTid.value,
-    startTid: Date.now(),
-    status: "Venter"
+    startTid: Date.now()
   });
 }
 
 socket.on("oppdater", data => {
   liste.innerHTML = "";
   data.forEach(k => {
-    let cls = "status-gronn";
-
+    let cls = "gronn";
     if (k.klarTid) {
       const [h,m] = k.klarTid.split(":");
       const klar = new Date();
       klar.setHours(h,m,0,0);
-      const diff = (klar - Date.now()) / 60000;
-      if (diff < 0) cls = "status-rod";
-      else if (diff <= 30) cls = "status-gul";
+      const diff = (klar - Date.now())/60000;
+      if (diff < 0) cls = "rod";
+      else if (diff <= 30) cls = "gul";
     }
 
     const tr = document.createElement("tr");
@@ -123,15 +125,14 @@ socket.on("oppdater", data => {
       <td>${k.regnr}</td>
       <td>${Math.floor((Date.now()-k.startTid)/60000)} min</td>
       <td>${k.klarTid || ""}</td>
-      <td>${k.status}</td>
       <td><button onclick="fjern('${k.id}')">X</button></td>
     `;
     liste.appendChild(tr);
   });
 });
 
-function fjern(id){
-  socket.emit("fjernKunde",{id,verkstedId});
+function fjern(id) {
+  socket.emit("fjernKunde", { id, verkstedId });
 }
 
 setInterval(()=>socket.emit("join",verkstedId),30000);
@@ -139,9 +140,6 @@ setInterval(()=>socket.emit("join",verkstedId),30000);
 
 </body>
 </html>
-
-
-
 
 
 
