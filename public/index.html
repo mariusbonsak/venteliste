@@ -90,6 +90,7 @@ th {
 
 <body>
 
+<!-- LOGIN -->
 <div class="login-box">
   <div class="login-card">
     <h2>Venteliste</h2>
@@ -99,6 +100,7 @@ th {
   </div>
 </div>
 
+<!-- APP -->
 <div class="app">
   <div class="top-bar">
     <h2>Venteliste</h2>
@@ -106,6 +108,7 @@ th {
   </div>
 
   <div>
+    <input id="ordre" placeholder="Ordrenr">
     <input id="navn" placeholder="Kunde">
     <input id="regnr" placeholder="Reg.nr">
     <input id="klarTid" type="time">
@@ -115,11 +118,12 @@ th {
   <table>
     <thead>
       <tr>
+        <th>Ordre</th>
         <th>Kunde</th>
         <th>Reg.nr</th>
         <th>Ventetid</th>
         <th>Klar</th>
-        <th></th>
+        <th>Handling</th>
       </tr>
     </thead>
     <tbody id="liste"></tbody>
@@ -166,11 +170,19 @@ function leggTil() {
   socket.emit("nyKunde", {
     id: Date.now().toString(),
     verkstedId,
+    ordre: ordre.value,
     navn: navn.value,
     regnr: regnr.value,
     klarTid: klarTid.value,
     startTid: Date.now()
   });
+}
+
+function redigerTid(id) {
+  const nyTid = prompt("Ny forventet klar (HH:MM)");
+  if (nyTid) {
+    socket.emit("redigerTid", { id, verkstedId, klarTid: nyTid });
+  }
 }
 
 socket.on("oppdater", data => {
@@ -189,11 +201,15 @@ socket.on("oppdater", data => {
     const tr = document.createElement("tr");
     tr.className = cls;
     tr.innerHTML = `
+      <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
       <td>${k.regnr}</td>
       <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
-      <td><button onclick="fjern('${k.id}')">X</button></td>
+      <td>
+        <button onclick="redigerTid('${k.id}')">✏️</button>
+        <button onclick="fjern('${k.id}')">❌</button>
+      </td>
     `;
     liste.appendChild(tr);
   });
@@ -206,6 +222,7 @@ function fjern(id) {
 
 </body>
 </html>
+
 
 
 
