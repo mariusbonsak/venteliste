@@ -2,134 +2,97 @@
 <html lang="no">
 <head>
 <meta charset="UTF-8">
-<title>Venteliste – Storskjerm</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Venteliste</title>
 
 <style>
 body {
-  font-family: "Segoe UI", Arial, sans-serif;
-  background: #9ea3a8; /* mørkere nardo-grå */
   margin: 0;
-  padding: 40px;
-  color: #0f172a;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #1b1e23;
+  color: white;
 }
 
 h1 {
   text-align: center;
-  margin-bottom: 32px;
-  font-size: 46px;
-  letter-spacing: 1px;
+  margin: 20px;
 }
 
 table {
-  width: 100%;
+  width: 95%;
+  margin: auto;
   border-collapse: collapse;
-  background: #eef0f2;
-  border-radius: 18px;
-  overflow: hidden;
+  font-size: 22px;
 }
 
 th, td {
-  padding: 22px 16px;
+  padding: 16px;
   text-align: center;
-  font-size: 30px;
 }
 
 th {
-  background: #d3d6da;
-  font-weight: 700;
+  background: #2a2f36;
 }
 
-/* ===== STATUSFARGER – EKSTRA TYDELIG ===== */
-.status-gronn td {
-  background-color: #9fddb7;   /* kraftig grønn */
-}
-
-.status-gul td {
-  background-color: #f2c94c;   /* tydelig gul */
-}
-
-.status-rod td {
-  background-color: #e57373;   /* kraftig rød */
-}
+.gronn { background: #1e7f43; }
+.gul   { background: #c9a227; color: black; }
+.rod   { background: #9c1f1f; }
 </style>
 </head>
 
 <body>
 
-<h1>Ventende kunder</h1>
+<h1>Ventende biler</h1>
 
 <table>
-  <thead>
-    <tr>
-      <th>Ordre</th>
-      <th>Navn</th>
-      <th>Reg.nr</th>
-      <th>Ventetid</th>
-      <th>Forventet klar</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody id="liste"></tbody>
+<thead>
+<tr>
+  <th>Ordre</th>
+  <th>Kunde</th>
+  <th>Reg.nr</th>
+  <th>Ventetid</th>
+  <th>Klar</th>
+</tr>
+</thead>
+<tbody id="liste"></tbody>
 </table>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
-let kunder = [];
+const verkstedId = new URLSearchParams(location.search).get("verksted");
+
+socket.emit("join", verkstedId);
 
 socket.on("oppdater", data => {
-  kunder = data;
-  render();
-});
-
-function render() {
-  const tbody = document.getElementById("liste");
-  tbody.innerHTML = "";
-
-  kunder.forEach(k => {
-    const ventetid = Math.floor((Date.now() - k.startTid) / 60000);
-
-    /* 🎯 FARGELOGIKK */
-    let klasse = "status-gronn";
-
+  liste.innerHTML = "";
+  data.forEach(k => {
+    let cls = "gronn";
     if (k.klarTid) {
-      const [h, m] = k.klarTid.split(":").map(Number);
-      const forventet = new Date();
-      forventet.setHours(h, m, 0, 0);
-
-      const minutterTilKlar =
-        (forventet.getTime() - Date.now()) / 60000;
-
-      if (minutterTilKlar < 0) {
-        klasse = "status-rod";
-      } else if (minutterTilKlar <= 30) {
-        klasse = "status-gul";
-      }
+      const [h,m] = k.klarTid.split(":");
+      const klar = new Date();
+      klar.setHours(h,m,0,0);
+      const diff = (klar - Date.now()) / 60000;
+      if (diff < 0) cls = "rod";
+      else if (diff <= 30) cls = "gul";
     }
 
-    const row = document.createElement("tr");
-    row.className = klasse;
-
-    row.innerHTML = `
-      <td>${k.ordre}</td>
+    const tr = document.createElement("tr");
+    tr.className = cls;
+    tr.innerHTML = `
+      <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
-      <td>${k.regnr || ""}</td>
-      <td>${ventetid} min</td>
+      <td>${k.regnr}</td>
+      <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
-      <td>${k.status}</td>
     `;
-
-    tbody.appendChild(row);
+    liste.appendChild(tr);
   });
-}
-
-/* Auto-refresh for klokke og farger */
-setInterval(render, 30000);
+});
 </script>
 
 </body>
 </html>
+
 
 
 
