@@ -74,9 +74,21 @@ io.on("connection", socket => {
       kunder.filter(k => k.verkstedId === verkstedId)
     );
   });
+  socket.on("redigerTid", ({ id, verkstedId, klarTid }) => {
+  const k = kunder.find(x => x.id === id);
+  if (k) {
+    k.klarTid = klarTid;
+    save(DATA_PATH, kunder);
+    io.to(verkstedId).emit("oppdater",
+      kunder.filter(x => x.verkstedId === verkstedId)
+    );
+  }
+});
+
 });
 
 server.listen(3000, () => console.log("Venteliste kjører"));
+
 
 
 
