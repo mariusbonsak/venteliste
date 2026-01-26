@@ -134,6 +134,7 @@ th {
 <script>
 const socket = io();
 let verkstedId = "";
+let sisteData = [];
 
 /* AUTOLOGIN */
 fetch("/session")
@@ -185,15 +186,32 @@ function redigerTid(id) {
   }
 }
 
+function fjern(id) {
+  socket.emit("fjernKunde", { id, verkstedId });
+}
+
+/* SOCKET DATA */
 socket.on("oppdater", data => {
+  sisteData = data;
+  render();
+});
+
+/* ⏱️ SANNTIDS OPPDATERING */
+setInterval(render, 30000);
+
+function render() {
+  const liste = document.getElementById("liste");
   liste.innerHTML = "";
-  data.forEach(k => {
+
+  sisteData.forEach(k => {
     let cls = "gronn";
+
     if (k.klarTid) {
-      const [h,m] = k.klarTid.split(":");
+      const [h, m] = k.klarTid.split(":");
       const klar = new Date();
-      klar.setHours(h,m,0,0);
+      klar.setHours(h, m, 0, 0);
       const diff = (klar - Date.now()) / 60000;
+
       if (diff < 0) cls = "rod";
       else if (diff <= 30) cls = "gul";
     }
@@ -213,10 +231,6 @@ socket.on("oppdater", data => {
     `;
     liste.appendChild(tr);
   });
-});
-
-function fjern(id) {
-  socket.emit("fjernKunde", { id, verkstedId });
 }
 </script>
 
