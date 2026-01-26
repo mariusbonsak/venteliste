@@ -60,18 +60,31 @@ th {
 <script>
 const socket = io();
 const verkstedId = new URLSearchParams(location.search).get("verksted");
+let kunder = [];
 
 socket.emit("join", verkstedId);
 
 socket.on("oppdater", data => {
-  liste.innerHTML = "";
-  data.forEach(k => {
+  kunder = data;
+  render();
+});
+
+// 🔁 OPPDATER FARGER + MINUTTER HVERT 30 SEKUND
+setInterval(render, 30000);
+
+function render() {
+  const tbody = document.getElementById("liste");
+  tbody.innerHTML = "";
+
+  kunder.forEach(k => {
     let cls = "gronn";
+
     if (k.klarTid) {
-      const [h,m] = k.klarTid.split(":");
+      const [h, m] = k.klarTid.split(":");
       const klar = new Date();
-      klar.setHours(h,m,0,0);
+      klar.setHours(h, m, 0, 0);
       const diff = (klar - Date.now()) / 60000;
+
       if (diff < 0) cls = "rod";
       else if (diff <= 30) cls = "gul";
     }
@@ -85,10 +98,11 @@ socket.on("oppdater", data => {
       <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
     `;
-    liste.appendChild(tr);
+    tbody.appendChild(tr);
   });
-});
+}
 </script>
+
 
 </body>
 </html>
