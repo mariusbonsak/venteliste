@@ -158,6 +158,13 @@ const socket = io();
 let verkstedId = "";
 let sisteData = [];
 
+/* 🔑 JOIN PÅ RECONNECT */
+socket.on("connect", () => {
+  if (verkstedId) {
+    socket.emit("join", verkstedId);
+  }
+});
+
 /* AUTOLOGIN */
 fetch("/session")
   .then(r => r.ok ? r.json() : Promise.reject())
@@ -217,13 +224,11 @@ function fjern(id) {
   socket.emit("fjernKunde", { id, verkstedId });
 }
 
-/* SOCKET DATA */
 socket.on("oppdater", data => {
   sisteData = data;
   render();
 });
 
-/* ⏱️ SANNTIDS OPPDATERING */
 setInterval(render, 30000);
 
 function render() {
@@ -261,8 +266,10 @@ function render() {
 }
 </script>
 
+
 </body>
 </html>
+
 
 
 
