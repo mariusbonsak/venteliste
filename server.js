@@ -10,17 +10,16 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
-app.use(express.static("public"));
 
 /* SESSION – 24 TIMER */
 app.use(session({
   secret: "venteliste-secret",
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    maxAge: 24 * 60 * 60 * 1000
-  }
+  cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
+
+app.use(express.static("public"));
 
 /* DATA */
 const DATA_PATH = path.join(__dirname, "data", "kunder.json");
@@ -42,7 +41,6 @@ app.post("/login", (req, res) => {
   res.json({ verkstedId: user.verkstedId });
 });
 
-/* SESSION CHECK */
 app.get("/session", (req, res) => {
   if (req.session.verkstedId) {
     res.json({ verkstedId: req.session.verkstedId });
@@ -56,7 +54,9 @@ io.on("connection", socket => {
 
   socket.on("join", verkstedId => {
     socket.join(verkstedId);
-    socket.emit("oppdater", kunder.filter(k => k.verkstedId === verkstedId));
+    socket.emit("oppdater",
+      kunder.filter(k => k.verkstedId === verkstedId)
+    );
   });
 
   socket.on("nyKunde", kunde => {
@@ -74,17 +74,17 @@ io.on("connection", socket => {
       kunder.filter(k => k.verkstedId === verkstedId)
     );
   });
-  socket.on("redigerTid", ({ id, verkstedId, klarTid }) => {
-  const k = kunder.find(x => x.id === id);
-  if (k) {
-    k.klarTid = klarTid;
-    save(DATA_PATH, kunder);
-    io.to(verkstedId).emit("oppdater",
-      kunder.filter(x => x.verkstedId === verkstedId)
-    );
-  }
-});
 
+  socket.on("redigerTid", ({ id, verkstedId, klarTid }) => {
+    const k = kunder.find(x => x.id === id);
+    if (k) {
+      k.klarTid = klarTid;
+      save(DATA_PATH, kunder);
+      io.to(verkstedId).emit("oppdater",
+        kunder.filter(x => x.verkstedId === verkstedId)
+      );
+    }
+  });
 });
 
 server.listen(3000, () => console.log("Venteliste kjører"));
