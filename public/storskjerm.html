@@ -62,14 +62,17 @@ const socket = io();
 const verkstedId = new URLSearchParams(location.search).get("verksted");
 let kunder = [];
 
-socket.emit("join", verkstedId);
+/* 🔑 VIKTIG: join hver gang socket reconnecter */
+socket.on("connect", () => {
+  socket.emit("join", verkstedId);
+});
 
 socket.on("oppdater", data => {
   kunder = data;
   render();
 });
 
-// 🔁 OPPDATER FARGER + MINUTTER HVERT 30 SEKUND
+/* ⏱️ oppdater tid og farger kontinuerlig */
 setInterval(render, 30000);
 
 function render() {
@@ -103,9 +106,9 @@ function render() {
 }
 </script>
 
-
 </body>
 </html>
+
 
 
 
