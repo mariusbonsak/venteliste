@@ -133,6 +133,7 @@ th {
     <input id="ordre" placeholder="Ordrenr">
     <input id="navn" placeholder="Kunde">
     <input id="regnr" placeholder="Reg.nr">
+    <input id="mekaniker" placeholder="Mek" maxlength="3" style="width:60px">
     <input id="klarTid" type="time">
     <button onclick="leggTil()">Legg til</button>
   </div>
@@ -143,6 +144,7 @@ th {
         <th>Ordre</th>
         <th>Kunde</th>
         <th>Reg.nr</th>
+        <th>Mek</th>
         <th>Ventetid</th>
         <th>Klar</th>
         <th>Handling</th>
@@ -160,9 +162,7 @@ let sisteData = [];
 
 /* 🔑 JOIN PÅ RECONNECT */
 socket.on("connect", () => {
-  if (verkstedId) {
-    socket.emit("join", verkstedId);
-  }
+  if (verkstedId) socket.emit("join", verkstedId);
 });
 
 /* AUTOLOGIN */
@@ -208,9 +208,12 @@ function leggTil() {
     ordre: ordre.value,
     navn: navn.value,
     regnr: regnr.value,
+    mekaniker: mekaniker.value.toUpperCase(),
     klarTid: klarTid.value,
     startTid: Date.now()
   });
+
+  mekaniker.value = "";
 }
 
 function redigerTid(id) {
@@ -254,6 +257,7 @@ function render() {
       <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
       <td>${k.regnr}</td>
+      <td><strong>${k.mekaniker || ""}</strong></td>
       <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
       <td>
@@ -266,9 +270,10 @@ function render() {
 }
 </script>
 
-
 </body>
 </html>
+
+
 
 
 
