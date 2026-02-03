@@ -49,6 +49,7 @@ th {
   <th>Ordre</th>
   <th>Kunde</th>
   <th>Reg.nr</th>
+  <th>Mek</th>
   <th>Ventetid</th>
   <th>Klar</th>
 </tr>
@@ -62,7 +63,7 @@ const socket = io();
 const verkstedId = new URLSearchParams(location.search).get("verksted");
 let kunder = [];
 
-/* 🔑 VIKTIG: join hver gang socket reconnecter */
+/* 🔑 JOIN PÅ RECONNECT */
 socket.on("connect", () => {
   socket.emit("join", verkstedId);
 });
@@ -72,7 +73,6 @@ socket.on("oppdater", data => {
   render();
 });
 
-/* ⏱️ oppdater tid og farger kontinuerlig */
 setInterval(render, 30000);
 
 function render() {
@@ -98,6 +98,7 @@ function render() {
       <td>${k.ordre || ""}</td>
       <td>${k.navn}</td>
       <td>${k.regnr}</td>
+      <td><strong>${k.mekaniker || ""}</strong></td>
       <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
       <td>${k.klarTid || ""}</td>
     `;
