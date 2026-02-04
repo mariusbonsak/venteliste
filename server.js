@@ -21,6 +21,19 @@ app.use(session({
 
 app.use(express.static("public"));
 
+/* BUILD INFO */
+const BUILD = {
+  name: "Venteliste",
+  version: "1.0.0",
+  author: "Marius Bonsak",
+  contact: "mariusbonsak@gmail.com",
+  year: new Date().getFullYear()
+};
+
+app.get("/about", (req, res) => {
+  res.json(BUILD);
+});
+
 /* DATA */
 const DATA_PATH = path.join(__dirname, "data", "kunder.json");
 const USERS_PATH = path.join(__dirname, "data", "users.json");
