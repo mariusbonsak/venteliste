@@ -21,19 +21,6 @@ app.use(session({
 
 app.use(express.static("public"));
 
-/* BUILD INFO */
-const BUILD = {
-  name: "Venteliste",
-  version: "1.0.0",
-  author: "Marius Bonsak",
-  contact: "mariusbonsak@gmail.com",
-  year: new Date().getFullYear()
-};
-
-app.get("/about", (req, res) => {
-  res.json(BUILD);
-});
-
 /* DATA */
 const DATA_PATH = path.join(__dirname, "data", "kunder.json");
 const USERS_PATH = path.join(__dirname, "data", "users.json");
@@ -43,6 +30,17 @@ const save = (p, d) => fs.writeFileSync(p, JSON.stringify(d, null, 2));
 
 let kunder = load(DATA_PATH);
 let users = load(USERS_PATH);
+
+/* BUILD / ABOUT INFO */
+app.get("/about", (req, res) => {
+  res.json({
+    app: "Venteliste",
+    build: "v1.0.0",
+    author: "Marius Bonsak",
+    contact: "mariusbonsak@gmail.com",
+    year: new Date().getFullYear()
+  });
+});
 
 /* LOGIN */
 app.post("/login", (req, res) => {
@@ -101,7 +99,6 @@ io.on("connection", socket => {
 });
 
 server.listen(3000, () => console.log("Venteliste kjører"));
-
 
 
 
