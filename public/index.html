@@ -12,9 +12,11 @@ body {
   color: #1f1f1f;
 }
 
+/* LOGIN */
 .login-box {
   height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 }
@@ -49,6 +51,14 @@ body {
   border-radius: 8px;
 }
 
+.about-link {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+}
+
+/* APP */
 .app {
   display: none;
   padding: 25px;
@@ -62,7 +72,6 @@ body {
 
 .top-bar-right {
   display: flex;
-  align-items: center;
   gap: 10px;
 }
 
@@ -71,12 +80,6 @@ body {
   border: none;
   color: #666;
   cursor: pointer;
-  font-size: 14px;
-}
-
-.logout-btn:hover {
-  color: #000;
-  text-decoration: underline;
 }
 
 input {
@@ -97,13 +100,29 @@ th, td {
   border-bottom: 1px solid #ddd;
 }
 
-th {
-  background: #e9ecef;
-}
+th { background: #e9ecef; }
 
 .gronn { background: #d4edda; }
 .gul   { background: #fff3cd; }
 .rod   { background: #f8d7da; }
+
+/* ABOUT MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  width: 320px;
+  text-align: center;
+}
 </style>
 </head>
 
@@ -117,6 +136,7 @@ th {
     <input id="pin" type="password" placeholder="PIN">
     <button onclick="login()">Logg inn</button>
   </div>
+  <div class="about-link" onclick="openAbout()">Om systemet</div>
 </div>
 
 <!-- APP -->
@@ -125,6 +145,7 @@ th {
     <h2>Venteliste</h2>
     <div class="top-bar-right">
       <button onclick="openScreen()">📺 Storskjerm</button>
+      <button onclick="openAbout()">Om</button>
       <button class="logout-btn" onclick="logout()">Logg ut</button>
     </div>
   </div>
@@ -154,13 +175,40 @@ th {
   </table>
 </div>
 
+<!-- ABOUT -->
+<div class="modal" id="aboutModal" onclick="this.style.display='none'">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <h3>Venteliste</h3>
+    <div id="aboutText"></div>
+    <br>
+    <button onclick="closeAbout()">Lukk</button>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
 let verkstedId = "";
 let sisteData = [];
 
-/* 🔑 JOIN PÅ RECONNECT */
+/* ABOUT */
+function openAbout() {
+  fetch("/about")
+    .then(r => r.json())
+    .then(d => {
+      aboutText.innerHTML = `
+        Build: ${d.build}<br>
+        © ${d.year} ${d.author}<br>
+        <a href="mailto:${d.contact}">${d.contact}</a>
+      `;
+      aboutModal.style.display = "flex";
+    });
+}
+function closeAbout() {
+  aboutModal.style.display = "none";
+}
+
+/* SOCKET */
 socket.on("connect", () => {
   if (verkstedId) socket.emit("join", verkstedId);
 });
@@ -175,10 +223,7 @@ function login() {
   fetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      brukernavn: bruker.value,
-      pin: pin.value
-    })
+    body: JSON.stringify({ brukernavn: bruker.value, pin: pin.value })
   })
   .then(r => r.json())
   .then(d => start(d.verkstedId))
@@ -186,8 +231,7 @@ function login() {
 }
 
 function logout() {
-  fetch("/logout", { method: "POST" })
-    .then(() => location.reload());
+  fetch("/logout", { method: "POST" }).then(() => location.reload());
 }
 
 function start(id) {
@@ -212,15 +256,12 @@ function leggTil() {
     klarTid: klarTid.value,
     startTid: Date.now()
   });
-
   mekaniker.value = "";
 }
 
 function redigerTid(id) {
   const nyTid = prompt("Ny forventet klar (HH:MM)");
-  if (nyTid) {
-    socket.emit("redigerTid", { id, verkstedId, klarTid: nyTid });
-  }
+  if (nyTid) socket.emit("redigerTid", { id, verkstedId, klarTid: nyTid });
 }
 
 function fjern(id) {
@@ -235,49 +276,37 @@ socket.on("oppdater", data => {
 setInterval(render, 30000);
 
 function render() {
-  const liste = document.getElementById("liste");
   liste.innerHTML = "";
-
   sisteData.forEach(k => {
     let cls = "gronn";
-
     if (k.klarTid) {
-      const [h, m] = k.klarTid.split(":");
+      const [h,m] = k.klarTid.split(":");
       const klar = new Date();
-      klar.setHours(h, m, 0, 0);
+      klar.setHours(h,m,0,0);
       const diff = (klar - Date.now()) / 60000;
-
       if (diff < 0) cls = "rod";
       else if (diff <= 30) cls = "gul";
     }
 
-    const tr = document.createElement("tr");
-    tr.className = cls;
-    tr.innerHTML = `
-      <td>${k.ordre || ""}</td>
-      <td>${k.navn}</td>
-      <td>${k.regnr}</td>
-      <td><strong>${k.mekaniker || ""}</strong></td>
-      <td>${Math.floor((Date.now() - k.startTid) / 60000)} min</td>
-      <td>${k.klarTid || ""}</td>
-      <td>
-        <button onclick="redigerTid('${k.id}')">✏️</button>
-        <button onclick="fjern('${k.id}')">❌</button>
-      </td>
-    `;
-    liste.appendChild(tr);
+    liste.innerHTML += `
+      <tr class="${cls}">
+        <td>${k.ordre||""}</td>
+        <td>${k.navn}</td>
+        <td>${k.regnr}</td>
+        <td><strong>${k.mekaniker||""}</strong></td>
+        <td>${Math.floor((Date.now()-k.startTid)/60000)} min</td>
+        <td>${k.klarTid||""}</td>
+        <td>
+          <button onclick="redigerTid('${k.id}')">✏️</button>
+          <button onclick="fjern('${k.id}')">❌</button>
+        </td>
+      </tr>`;
   });
 }
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
 
 
 
