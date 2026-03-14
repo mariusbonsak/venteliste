@@ -4,8 +4,13 @@
     "pin": "1250",
     "verkstedId": "B250",
     "navn": "Møller Bil Elverum"
+  },
+  {
+    "brukernavn": "B480",
+    "pin": "1480",
+    "verkstedId": "B480",
+    "navn": "Møller Bil Kongsvinger"
   }
 ]
-
 
 
