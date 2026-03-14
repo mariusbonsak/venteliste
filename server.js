@@ -52,12 +52,21 @@ app.post("/login", (req, res) => {
   res.json({ verkstedId: user.verkstedId });
 });
 
+/* SESSION CHECK */
 app.get("/session", (req, res) => {
   if (req.session.verkstedId) {
     res.json({ verkstedId: req.session.verkstedId });
   } else {
     res.status(401).end();
   }
+});
+
+/* LOGOUT (NY) */
+app.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ ok: true });
+  });
 });
 
 /* SOCKET */
@@ -99,7 +108,5 @@ io.on("connection", socket => {
 });
 
 server.listen(3000, () => console.log("Venteliste kjører"));
-
-
 
 
